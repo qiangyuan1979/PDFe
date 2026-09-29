@@ -43,7 +43,7 @@ export default function TaskPanel() {
     ocr: t(
       "对扫描版 PDF 调用 Tesseract 识别文字，并把结果作为不可见文本层写回，生成可搜索 PDF。需要编译时启用 ocr feature。",
     ),
-    forms: t("列出 PDF 表单（AcroForm）字段并查看当前值；填写功能开发中。"),
+    forms: t("列出 PDF 表单（AcroForm）字段并填写新值，保存后立即写入文档。"),
   };
 
   if (task === null) return null;

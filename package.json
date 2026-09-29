@@ -14,7 +14,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"scripts/**/*.mjs\" \"vite.config.ts\"",
     "format:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml",
     "format:rust:check": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check",
-    "test:unit": "node --experimental-strip-types --test tests/lib/bitmapCache.test.ts tests/lib/ipc.test.ts tests/lib/watermarkLayout.test.ts"
+    "test:unit": "node --experimental-strip-types --test tests/lib/bitmapCache.test.ts tests/lib/ipc.test.ts tests/lib/i18nCoverage.test.ts tests/lib/watermarkLayout.test.ts"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
