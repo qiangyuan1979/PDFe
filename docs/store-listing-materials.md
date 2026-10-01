@@ -464,10 +464,11 @@ System requirements: Windows 10 version 1809 or later (x64).
 
 - [x] 300×300 一览图标 —— `docs/store-listing/StoreLogo-300x300.png`（勿用包内 50×50）
 - [x] 16:9 超级英雄图（可选，非必填）—— `docs/store-listing/Hero-1920x1080.png` / `Hero-3840x2160.png`；无文字、无应用 UI、非图库照片
-- [ ] ≥4 张（主卡 01–09 + 可选补位，建议 8–10 张，上限 10 张）≥1366×768 PNG，中英各一套，逐张核对像素
+- [x] ≥4 张（主卡 01–09 + 可选补位，建议 8–10 张，上限 10 张）≥1366×768 PNG，中英各一套，逐张核对像素
+      **2026-10-01 实测复核**：`docs/store-listing/screenshots/` 现有 4 对 8 张（`01-reader` / `02-search` / `03-annot` / `05-watermark`，各含 `-zh` / `-en`），逐张以 `System.Drawing` 读取尺寸均为 **1920×1080**（≥1366×768），中英成对无缺，单文件 266–409 KB。
 - [x] 每张截图配 ≤200 字符说明，中英各一份 —— 9 张主卡的「说明（中）/（EN）」已写入 §2.3，补位 10/11 见其表格；2026-09-26 实测（按 Unicode 码点）：中文 21–36、英文 58–129，**全部 ≤200**，且 9 张卡中英成对无缺
 - [x] 说明 / 简短说明 / 产品功能 中英双份文案落库 —— §3.1 简短说明、§3.2 说明、§3.3 产品功能（中英各 10 条）均已落库，实测字符数与上限比对见 §3 开头，全部达标
-- [ ] 短标题、排序标题、系统要求填写
+- [x] 短标题、排序标题、系统要求填写（拟填值见 §3.4，已随本轮提交认证一并填入 Partner Center）
 - [x] 清单 Identity 替换后重新走 `Add-AppxPackage` 侧载自测（2026-09-27 实测通过，用商店身份包而非本地测试身份）
       清单注入 Partner Center 三值（`CCB6DC78.PDFe` / `CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F` / `老袁不圆润`）后，以自签名（新证书同为 `CN=D7439EB2-…`，指纹 `5B46459DE656E937606786A05732E7F21A247D3C`）侧载安装成功：`Add-AppxPackage` exit 0 → `CCB6DC78.PDFe_0.1.0.0_x64__hmyrrnnxy08dw`，`Status = Ok`；启动后进程 `pdfe` 存活、标题 `PDFe`、`Responding = True`，截屏确认界面正常渲染（工具栏 + 左栏缩略图/书签 + 空态），**非白屏**。
       **踩坑记录 1（证书信任范围）**：只把证书导入 `Cert:\CurrentUser\TrustedPeople` 不够，`Add-AppxPackage` 仍报 `0x800B0109`「根证书必须是受信任的证书」；必须装入 **`LocalMachine\TrustedPeople`**（需管理员 UAC）。
@@ -482,8 +483,8 @@ System requirements: Windows 10 version 1809 or later (x64).
       ✅ **出上架包后必做的自检（2 条，缺一不可）**：① `layout\pdfe.exe` 字节中含 `assets/index-`（未内嵌 = dev 版，必须重打）；② `Get-AuthenticodeSignature <msix>` = `NotSigned`（上架包不签名）。另需核对 `layout\AppxManifest.xml` 的 `Identity/@Name`、`Identity/@Publisher`、`PublisherDisplayName` 三值与 Partner Center 逐字一致。
       **2026-09-27 已按上法重打包并全部自检通过**：`PDFe_0.1.0_x64.msix` **7,191,892 字节**（比坏包 +115,734，正对应内嵌的前端资源），SHA256 `D33A247CEE0BEF96D7FB68F75B67F53DAACBDA09699A0C9A7D555DEEC61511F9`，`Get-AuthenticodeSignature` = `NotSigned`；`layout\pdfe.exe` 8,114,688 字节且字节内含 `assets/index-` 与 `/assets/index-D3lRW0em.css`；清单 `Identity/@Name`=`CCB6DC78.PDFe`、`Identity/@Publisher`=`CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F`、`PublisherDisplayName`=`老袁不圆润`、`EntryPoint=Windows.FullTrustApplication`，无残留占位符。
       ⚠️ **上传给 Partner Center 的是未签名副本 `PDFe_0.1.0_x64.unsigned.msix`**（与上段同尺寸/同哈希：7,191,892 字节 / `D33A247C…` / `NotSigned`）。同名原件 `PDFe_0.1.0_x64.msix` 已在本地商店身份侧载自测中被**签名覆盖**（现为 7,194,886 字节 / SHA256 `DA847A45EE06B3BF76C19750984D1F9848353A403204F82F43E0E77AE3EEDB56`）——**切勿把签名后的同名文件传上去**。若原件被覆盖，用 `scripts\build-msix.ps1 -SkipBuild -Sign None -IdentityName CCB6DC78.PDFe -Publisher "CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F" -PublisherDisplayName <老袁不圆润>` 重出即可。旧包（SHA256 `B2763171…`，7,076,158 字节）作废，勿再上传。
-- [ ] Partner Center「提交选项」页填写受限功能 `runFullTrust` 用途说明并保存（拟填文本见 §4，该页不保存会一直显示 Incomplete）
-- [ ] Partner Center 重新上传修复后的包（首轮校验结果：1 错误 `PublisherDisplayName` + 1 警告 `runFullTrust`；修复后应只剩警告）
+- [x] Partner Center「提交选项」页填写受限功能 `runFullTrust` 用途说明并保存（文本见 §4，已随本轮提交认证一并保存，该页不再显示 Incomplete）
+- [x] Partner Center 重新上传修复后的包（已改传未签名副本 `PDFe_0.1.0_x64.unsigned.msix`，7,191,892 字节 / SHA256 `D33A247C…`；首轮的 1 错误 `PublisherDisplayName` 已修复，应只剩 `runFullTrust` 警告）
 - [x] 自签名签名 + 侧载安装自测（2026-09-26 实测通过）
       `scripts\build-msix.ps1 -Sign SelfSigned -Install`：复用已有自签名证书（`CN=PDFe Local Test`，指纹 `76F0CE79C05E03A9152FD5472C13405E80F137FB`，本机 `LocalMachine\TrustedPeople` 已信任）→ `signtool sign` 成功，`Get-AuthenticodeSignature` 状态 **Valid** → 侧载安装成功（`Status = Ok`，`C:\Program Files\WindowsApps\konnyyuan.pdfe_0.1.0.0_x64__6cgrzvqajzfpg`）→ 启动验证通过（进程 `pdfe` 存活、窗口标题 `PDFe`、`Responding = True`）。
       **踩坑记录**：同版本重装会报 `0x80073CFB`「提供的程序包已安装，且禁止重新安装该程序包…内容不相同」——本地自测迭代同一版本号时，须先 `Remove-AppxPackage konnyyuan.pdfe_0.1.0.0_x64__6cgrzvqajzfpg` 再 `Add-AppxPackage`（或提升 `tauri.conf.json` 的 `version`）。
@@ -496,11 +497,11 @@ System requirements: Windows 10 version 1809 or later (x64).
 
 > §5 回答「准备到什么程度」，本节回答「提交那一刻按什么顺序点」。逐项打勾，全绿再点 `提交认证`。
 
-- [ ] ① 结束/取消上一轮未竟的认证（若「认证」页仍有进行中的提交），并**删除旧包**（SHA256 `B2763171…`，7,076,158 字节，白屏坏包）
-- [ ] ② 上传修复后的包 **`PDFe_0.1.0_x64.unsigned.msix`**（[src-tauri/target/msix/](../src-tauri/target/msix/)，7,191,892 字节 / SHA256 `D33A247C…` / `NotSigned`）；**不要**传签名后的 `PDFe_0.1.0_x64.msix`（7,194,886 字节 / `DA847A45…`，那是本地自测产物）
-- [ ] ③ `提交选项` 页 → 受限功能 `runFullTrust` 用途说明填 §4 短版（291 字符）→ **点保存**（不保存该节恒为 Incomplete）
-- [ ] ④ `隐私政策 URL` 填 `https://qiangyuan1979.github.io/PDFe/store-listing/privacy-policy.html`（须以 `.html` 结尾，不能填 `.md`；提交前请先确认该地址返回 HTTP 200）
-- [ ] ⑤ `商店一览` 逐语言填文案（§3.1 简短说明 / §3.2 说明 / §3.3 产品功能），上传 300×300 图标与 ≥4 张截图（§2）
-- [ ] ⑥ 补充字段：短标题 / 排序标题 / 语音标题 / 系统要求（§3.4）；`此版本中的新增功能` 首次提交**留空**
-- [ ] ⑦ `价格和可用性` / `属性` / `年龄分级` 按 §4 决策填写
-- [ ] ⑧ 所有页面 Incomplete 清零后点 **`提交认证`**；**提交后包二进制不得再改动**
+- [x] ① 结束/取消上一轮未竟的认证（若「认证」页仍有进行中的提交），并**删除旧包**（SHA256 `B2763171…`，7,076,158 字节，白屏坏包）
+- [x] ② 上传修复后的包 **`PDFe_0.1.0_x64.unsigned.msix`**（[src-tauri/target/msix/](../src-tauri/target/msix/)，7,191,892 字节 / SHA256 `D33A247C…` / `NotSigned`）；**不要**传签名后的 `PDFe_0.1.0_x64.msix`（7,194,886 字节 / `DA847A45…`，那是本地自测产物）
+- [x] ③ `提交选项` 页 → 受限功能 `runFullTrust` 用途说明填 §4 短版（291 字符）→ **点保存**（不保存该节恒为 Incomplete）
+- [x] ④ `隐私政策 URL` 填 `https://qiangyuan1979.github.io/PDFe/store-listing/privacy-policy.html`（须以 `.html` 结尾，不能填 `.md`；提交前请先确认该地址返回 HTTP 200）
+- [x] ⑤ `商店一览` 逐语言填文案（§3.1 简短说明 / §3.2 说明 / §3.3 产品功能），上传 300×300 图标与 ≥4 张截图（§2）
+- [x] ⑥ 补充字段：短标题 / 排序标题 / 语音标题 / 系统要求（§3.4）；`此版本中的新增功能` 首次提交**留空**
+- [x] ⑦ `价格和可用性` / `属性` / `年龄分级` 按 §4 决策填写
+- [x] ⑧ 所有页面 Incomplete 清零后点 **`提交认证`**；**提交后包二进制不得再改动**（已提交认证，结果待出）
