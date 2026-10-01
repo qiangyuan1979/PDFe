@@ -105,7 +105,7 @@
 - 提交规范：`feat|fix|docs|test|chore(scope): 描述`
 - 每个里程碑完成即打 tag（`v0.1.0-m1` 风格）
 - 主干开发 + 里程碑标签
-- 远程仓库：`origin` = https://github.com/pdfreader001/pdfreader001.git（主干 `main`，已推送至 M5 收尾提交 `31fe8c8`）
+- 远程仓库：`origin` = https://github.com/qiangyuan1979/PDFe.git（主干 `main`；2026-09-30 由 `pdfreader001/pdfreader001` 迁移，全量历史已推送）
 
 ## 里程碑 tag 映射（补打于 2026-09-25）
 

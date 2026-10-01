@@ -86,7 +86,7 @@ PDFe 以 Windows 全信任桌面程序（full-trust Win32）形式打包，仅�
 
 ### 11. 联系我们
 
-对本政策有疑问，请通过 GitHub Issues 联系：<https://github.com/pdfreader001/pdfreader001/issues>
+对本政策有疑问，请通过 GitHub Issues 联系：<https://github.com/qiangyuan1979/PDFe/issues>
 
 ---
 
@@ -171,7 +171,7 @@ If a future version introduces features that require network access, we will upd
 
 ### 11. Contact
 
-Questions about this policy: please open an issue at <https://github.com/pdfreader001/pdfreader001/issues>
+Questions about this policy: please open an issue at <https://github.com/qiangyuan1979/PDFe/issues>
 
 
 

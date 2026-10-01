@@ -1,0 +1,38 @@
+{
+  "wordmark": "PDFe",
+  "tagline": "本地 PDF 阅读 · 编辑 · 安全工具箱",
+  "canvas": { "width": 1920, "height": 1080 },
+  "promoDir": "docs/store-listing/promo",
+  "images": [
+    {
+      "source": "01-reader-zh.png",
+      "output": "promo-01-reader-zh.png",
+      "headline": ["打开就能读", "快、清晰、离线"],
+      "bullets": [
+        "连续滚动 · 双页对开 · 缩略图导航",
+        "目录、书签与页面跳转随手可达",
+        "全部在本地完成，文档不出本机"
+      ]
+    },
+    {
+      "source": "02-search-zh.png",
+      "output": "promo-02-search-zh.png",
+      "headline": ["全文搜索", "结果一键定位到页"],
+      "bullets": [
+        "匹配结果按页分组，逐条跳转",
+        "搜索在本地完成，不联网、不上传",
+        "目录、书签与缩略图导航一并可用"
+      ]
+    },
+    {
+      "source": "03-annot-zh.png",
+      "output": "promo-03-annot-zh.png",
+      "headline": ["随手批注", "还能直接改字"],
+      "bullets": [
+        "高亮、下划线、删除线、便签等注释",
+        "在页面上直接修改文字、替换图片",
+        "撤销 / 重做，随时回退上一步"
+      ]
+    }
+  ]
+}

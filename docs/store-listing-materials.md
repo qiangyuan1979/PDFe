@@ -442,7 +442,7 @@ System requirements: Windows 10 version 1809 or later (x64).
 - **隐私政策 URL**：本应用无网络通信、不上传文件；政策已托管并**验证可访问**（HTTP 200，中英双版渲染正常）：
 
   ```
-  https://pdfreader001.github.io/pdfreader001/store-listing/privacy-policy.html
+  https://qiangyuan1979.github.io/PDFe/store-listing/privacy-policy.html
   ```
 
   源文件三形态见 [`store-listing/privacy-policy.md`](store-listing/privacy-policy.md) / [`.html`](store-listing/privacy-policy.html) / [`.txt`](store-listing/privacy-policy.txt)；托管方式为 GitHub Pages（Settings → Pages → Source「Deploy from a branch」+ `main` + `/docs`）。提交必须填**以 `.html` 结尾**的地址，不能填 `.md`。联系方式由仓库 Issues 页承载。⚠️ 路线 A 会把整个 `docs/` 目录作为网站公开，故该目录内**不得**出现内部备注/密钥类内容。
@@ -499,7 +499,7 @@ System requirements: Windows 10 version 1809 or later (x64).
 - [ ] ① 结束/取消上一轮未竟的认证（若「认证」页仍有进行中的提交），并**删除旧包**（SHA256 `B2763171…`，7,076,158 字节，白屏坏包）
 - [ ] ② 上传修复后的包 **`PDFe_0.1.0_x64.unsigned.msix`**（[src-tauri/target/msix/](../src-tauri/target/msix/)，7,191,892 字节 / SHA256 `D33A247C…` / `NotSigned`）；**不要**传签名后的 `PDFe_0.1.0_x64.msix`（7,194,886 字节 / `DA847A45…`，那是本地自测产物）
 - [ ] ③ `提交选项` 页 → 受限功能 `runFullTrust` 用途说明填 §4 短版（291 字符）→ **点保存**（不保存该节恒为 Incomplete）
-- [ ] ④ `隐私政策 URL` 填 `https://pdfreader001.github.io/pdfreader001/store-listing/privacy-policy.html`（**已就绪**，HTTP 200 已验证；须以 `.html` 结尾，不能填 `.md`）
+- [ ] ④ `隐私政策 URL` 填 `https://qiangyuan1979.github.io/PDFe/store-listing/privacy-policy.html`（须以 `.html` 结尾，不能填 `.md`；提交前请先确认该地址返回 HTTP 200）
 - [ ] ⑤ `商店一览` 逐语言填文案（§3.1 简短说明 / §3.2 说明 / §3.3 产品功能），上传 300×300 图标与 ≥4 张截图（§2）
 - [ ] ⑥ 补充字段：短标题 / 排序标题 / 语音标题 / 系统要求（§3.4）；`此版本中的新增功能` 首次提交**留空**
 - [ ] ⑦ `价格和可用性` / `属性` / `年龄分级` 按 §4 决策填写
