@@ -501,6 +501,7 @@ System requirements: Windows 10 version 1809 or later (x64).
 - [x] ② 上传修复后的包 **`PDFe_0.1.0_x64.unsigned.msix`**（[src-tauri/target/msix/](../src-tauri/target/msix/)，7,191,892 字节 / SHA256 `D33A247C…` / `NotSigned`）；**不要**传签名后的 `PDFe_0.1.0_x64.msix`（7,194,886 字节 / `DA847A45…`，那是本地自测产物）
 - [x] ③ `提交选项` 页 → 受限功能 `runFullTrust` 用途说明填 §4 短版（291 字符）→ **点保存**（不保存该节恒为 Incomplete）
 - [x] ④ `隐私政策 URL` 填 `https://qiangyuan1979.github.io/PDFe/store-listing/privacy-policy.html`（须以 `.html` 结尾，不能填 `.md`；提交前请先确认该地址返回 HTTP 200）
+      **2026-10-01 已在 Partner Center 更新为新地址**：新地址实测 HTTP 200（15,295 B）；旧地址 `https://pdfreader001.github.io/pdfreader001/store-listing/privacy-policy.html` 亦仍 200（15,323 B），但其页面内联系方式指向已停用的 `pdfreader001/pdfreader001`，故弃用。注意：本轮已提交认证，该字段改动在**下一次提交**时生效；应用包内不含隐私政策 URL（见 `src/components/HelpPanel.tsx` 的 `PRIVACY_KEYS`，纯文本 + i18n），故无需重新打包。
 - [x] ⑤ `商店一览` 逐语言填文案（§3.1 简短说明 / §3.2 说明 / §3.3 产品功能），上传 300×300 图标与 ≥4 张截图（§2）
 - [x] ⑥ 补充字段：短标题 / 排序标题 / 语音标题 / 系统要求（§3.4）；`此版本中的新增功能` 首次提交**留空**
 - [x] ⑦ `价格和可用性` / `属性` / `年龄分级` 按 §4 决策填写
