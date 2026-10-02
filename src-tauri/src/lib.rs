@@ -8,6 +8,7 @@ pub mod forms;
 pub mod ocr;
 pub mod office;
 pub mod pages;
+pub mod reader;
 pub mod render;
 pub mod security;
 pub mod watermark;
@@ -37,6 +38,7 @@ pub fn run() {
             render::get_page_text,
             render::search_page_text,
             render::pick_text_at_point,
+            reader::read_text_doc,
             pages::rotate_pages,
             pages::delete_pages,
             pages::duplicate_pages,

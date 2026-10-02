@@ -5,6 +5,7 @@ import type {
   PageInfo,
   BookmarkNode,
   SearchHitRect,
+  TextDocPayload,
 } from "../lib/ipc";
 import { isApiError } from "../lib/ipc";
 import { pageCache, thumbCache } from "../lib/bitmapCache";
@@ -13,6 +14,8 @@ import { translateError } from "../i18n";
 export type ViewMode = "continuous" | "single" | "dual";
 export type FitMode = "none" | "width" | "page";
 export type LeftTab = "thumbnails" | "bookmarks";
+/** 当前打开的文档类型：`pdf` 走 PDFium 画布；`text` 走原生阅读视图（markdown/html/epub/纯文本）。 */
+export type DocKind = "pdf" | "text";
 export type TaskId =
   | "merge"
   | "split"
@@ -121,6 +124,10 @@ export interface Toast {
 interface AppState {
   // 文档
   docId: number | null;
+  /** 文档类型：`pdf` 走 PDFium；`text` 走原生阅读视图（此时 `docId` 为 null）。 */
+  docKind: DocKind;
+  /** 原生阅读载荷；仅 `docKind === "text"` 时非空。 */
+  textDoc: TextDocPayload | null;
   fileName: string;
   filePath: string | null;
   /** 磁盘文件字节数；来自后端 DocumentInfo.fileSizeBytes。 */
@@ -209,6 +216,8 @@ interface AppState {
   jumpToPage: (page: number, flash?: boolean) => void;
   updatePages: (info: DocumentInfo) => void;
   setDoc: (info: DocumentInfo, path: string | null) => void;
+  /** 打开原生阅读文档（非 PDF）；内部会把 `docId` 置空并清掉 PDF 专属状态。 */
+  setTextDoc: (payload: TextDocPayload, path: string | null) => void;
   clearDoc: () => void;
   setViewMode: (m: ViewMode) => void;
   setScale: (s: number) => void;
@@ -305,6 +314,8 @@ const exitEditState = () => ({
 
 export const useApp = create<AppState>((set, get) => ({
   docId: null,
+  docKind: "pdf",
+  textDoc: null,
   fileName: "",
   filePath: null,
   fileSizeBytes: 0,
@@ -391,6 +402,8 @@ export const useApp = create<AppState>((set, get) => ({
     thumbCache.clear();
     set({
       docId: info.docId,
+      docKind: "pdf",
+      textDoc: null,
       fileName: info.fileName,
       filePath: path,
       fileSizeBytes: info.fileSizeBytes,
@@ -415,9 +428,49 @@ export const useApp = create<AppState>((set, get) => ({
       watermarkCustomPos: null,
     });
   },
+  setTextDoc: (payload, path) => {
+    pageCache.clear();
+    thumbCache.clear();
+    set({
+      docId: null,
+      docKind: "text",
+      textDoc: payload,
+      fileName: payload.fileName,
+      filePath: path,
+      fileSizeBytes: payload.fileSizeBytes,
+      pageCount: 0,
+      pages: [],
+      dirty: false,
+      canUndo: false,
+      canRedo: false,
+      undoDepth: 0,
+      redoDepth: 0,
+      currentPage: 0,
+      scrollTop: 0,
+      selectedPages: new Set(),
+      thumbFocus: -1,
+      searchHits: [],
+      searchActive: -1,
+      searchQuery: "",
+      searchHighlights: {},
+      loadingHighlights: new Set(),
+      annotations: {},
+      bookmarks: [],
+      searchOpen: false,
+      task: null,
+      removalPreview: null,
+      watermarkPreview: null,
+      watermarkCustomPos: null,
+      dblClickText: null,
+      editTarget: null,
+      ...exitEditState(),
+    });
+  },
   clearDoc: () =>
     set({
       docId: null,
+      docKind: "pdf",
+      textDoc: null,
       fileName: "",
       filePath: null,
       fileSizeBytes: 0,

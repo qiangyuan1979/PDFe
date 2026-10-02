@@ -32,6 +32,17 @@ tauri-plugin-dialog = "2.7.3"
 # 因此加密导出走：pdfium save_to_bytes（明文）→ lopdf 载入 → EncryptionState → 重序列化。
 lopdf = "0.45"
 
+# v2 原生阅读非 PDF 文档：
+# - 编码探测（中文 txt / 源码常见 GBK 系编码，按 UTF-8 直读会整篇乱码）
+encoding_rs = "0.8"
+chardetng = "0.1"
+# - markdown → HTML
+pulldown-cmark = "0.12"
+# - EPUB 解包（只留 deflate，EPUB 规范只要求这一种压缩）
+zip = { version = "2", default-features = false, features = ["deflate"] }
+# - EPUB 内图片内联成 data URL
+base64 = "0.22"
+
 # 可选 feature：启用后引入 Tesseract OCR 引擎。
 # 注意：构建时需要 cmake + 系统已安装 libtesseract-dev / tesseract-ocr-devel。
 # 默认关闭，普通用户 cargo build 不受影响。

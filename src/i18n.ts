@@ -586,6 +586,24 @@ const en: Record<string, string> = {
   "🎯 在画布上框选水印区域": "🎯 Drag on the canvas to select the watermark area",
   "🎯 点击画布任意位置即可设置文本插入点，也可手动输入坐标。":
     "🎯 Click anywhere on the canvas to set the text insertion point, or enter coordinates manually.",
+  // ---------- 原生阅读（v2：非 PDF 文档） ----------
+  "打开文件（Ctrl+O）": "Open File (Ctrl+O)",
+  打开一个文档开始阅读: "Open a document to start reading",
+  "已打开 {name}": "Opened {name}",
+  "Markdown 文档": "Markdown Document",
+  "HTML 文档": "HTML Document",
+  "EPUB 电子书": "EPUB Book",
+  纯文本: "Plain Text",
+  源代码: "Source Code",
+  网页文件: "Web Pages",
+  文本与源码: "Text & Source Code",
+  所有文件: "All Files",
+  "编码：{enc}": "Encoding: {enc}",
+  "语言：{lang}": "Language: {lang}",
+  "行数：{n}": "Lines: {n}",
+  "文件过大，仅显示前 {n} 行": "File too large; showing only the first {n} lines",
+  "文件过大，无法打开（上限 {limitMb} MB）": "File is too large to open (limit {limitMb} MB)",
+  只读: "Read-only",
 };
 
 const ja: Record<string, string> = {
@@ -1171,6 +1189,24 @@ const ja: Record<string, string> = {
   "🎯 在画布上框选水印区域": "🎯 キャンバス上でウォーターマーク領域を範囲選択",
   "🎯 点击画布任意位置即可设置文本插入点，也可手动输入坐标。":
     "🎯 キャンバス上の任意の位置をクリックするとテキスト挿入点を設定できます。座標を手動入力することもできます。",
+  // ---------- ネイティブ閲覧（v2：PDF 以外の文書） ----------
+  "打开文件（Ctrl+O）": "ファイルを開く（Ctrl+O）",
+  打开一个文档开始阅读: "文書を開いて読書を開始",
+  "已打开 {name}": "{name} を開きました",
+  "Markdown 文档": "Markdown 文書",
+  "HTML 文档": "HTML 文書",
+  "EPUB 电子书": "EPUB 電子書籍",
+  纯文本: "プレーンテキスト",
+  源代码: "ソースコード",
+  网页文件: "Web ページ",
+  文本与源码: "テキストとソースコード",
+  所有文件: "すべてのファイル",
+  "编码：{enc}": "文字コード：{enc}",
+  "语言：{lang}": "言語：{lang}",
+  "行数：{n}": "行数：{n}",
+  "文件过大，仅显示前 {n} 行": "ファイルが大きすぎるため、先頭 {n} 行のみ表示します",
+  "文件过大，无法打开（上限 {limitMb} MB）": "ファイルが大きすぎて開けません（上限 {limitMb} MB）",
+  只读: "読み取り専用",
 };
 
 export type Locale = "zh" | "en" | "ja";
@@ -1247,6 +1283,8 @@ const errZh: Record<string, string> = {
   // ------ 表单字段（M6） ------
   form_field_write_unsupported:
     "设置 {kind} 类型的字段值暂不支持：pdfium-render 0.8.37 没有公开 API 可修改此类字段。",
+  // ------ 原生阅读（v2） ------
+  file_too_large: "文件过大，无法打开（上限 {limitMb} MB）",
 };
 
 /** 开发期断言：errZh 字典必须与后端 AppError code 一一对应。
@@ -1302,6 +1340,7 @@ const KNOWN_ERROR_CODES = new Set([
   "password_empty",
   "pdf_encrypt_failed",
   "form_field_write_unsupported",
+  "file_too_large",
 ]);
 
 if (import.meta.env?.DEV) {

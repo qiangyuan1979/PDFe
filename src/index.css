@@ -1117,3 +1117,80 @@ input[type="color"] {
   color: var(--fg-dim);
   font-size: 11px;
 }
+
+/* ---------- 原生阅读视图（v2：markdown / html / epub / 纯文本 / 源码） ---------- */
+.reader-wrap {
+  grid-area: canvas;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-canvas);
+  overflow: hidden;
+}
+.reader-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--fg-dim);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.reader-kind {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--bg-active);
+  color: var(--fg);
+}
+.reader-frame {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  background: #fff;
+}
+.reader-text-view {
+  flex: 1;
+  overflow: auto;
+  background: var(--bg-panel);
+}
+.reader-text-inner {
+  display: flex;
+  align-items: flex-start;
+  min-width: max-content;
+  min-height: 100%;
+}
+.reader-gutter,
+.reader-text {
+  margin: 0;
+  font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre;
+  tab-size: 4;
+}
+.reader-gutter {
+  position: sticky;
+  left: 0;
+  min-width: 3.5em;
+  padding: 12px 10px;
+  text-align: right;
+  color: var(--fg-dim);
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  user-select: none;
+}
+.reader-text {
+  padding: 12px 16px;
+  color: var(--fg);
+}
+.reader-note {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--fg-dim);
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+}

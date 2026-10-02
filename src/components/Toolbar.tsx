@@ -42,7 +42,7 @@ export default function Toolbar({
   return (
     <header className="toolbar">
       <span className="logo">PDFe</span>
-      <button className="tbtn" onClick={onOpenFile} title={t("打开 PDF（Ctrl+O）")}>
+      <button className="tbtn" onClick={onOpenFile} title={t("打开文件（Ctrl+O）")}>
         📂 {t("打开")}
       </button>
       <button

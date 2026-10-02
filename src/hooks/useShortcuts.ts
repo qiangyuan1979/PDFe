@@ -45,6 +45,8 @@ export function useShortcuts(h: ShortcutHandlers): void {
       const mod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
       const st = useApp.getState();
+      // 原生阅读（非 PDF）没有页面/缩放/搜索，除打开文件外的 PDF 专属快捷键全部忽略
+      const pdf = st.docKind === "pdf";
 
       // --- Ctrl 系列 ---
       if (mod && !e.shiftKey && !e.altKey) {
@@ -53,6 +55,7 @@ export function useShortcuts(h: ShortcutHandlers): void {
           h.onOpenFile();
           return;
         }
+        if (!pdf) return;
         if (key === "s") {
           e.preventDefault();
           h.onSave();
@@ -128,21 +131,25 @@ export function useShortcuts(h: ShortcutHandlers): void {
 
       // --- 单键 ---
       if (e.key === "PageDown" || e.key === " " || e.key === "Spacebar") {
+        if (!pdf) return;
         e.preventDefault();
         st.jumpToPage(st.currentPage + 1);
         return;
       }
       if (e.key === "PageUp") {
+        if (!pdf) return;
         e.preventDefault();
         st.jumpToPage(st.currentPage - 1);
         return;
       }
       if (e.key === "Home") {
+        if (!pdf) return;
         e.preventDefault();
         st.jumpToPage(0);
         return;
       }
       if (e.key === "End") {
+        if (!pdf) return;
         e.preventDefault();
         st.jumpToPage(Math.max(0, st.pageCount - 1));
         return;
@@ -154,6 +161,7 @@ export function useShortcuts(h: ShortcutHandlers): void {
         return;
       }
       if (e.key === "F3") {
+        if (!pdf) return;
         e.preventDefault();
         st.setSearchOpen(true);
         return;

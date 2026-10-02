@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useApp, saveReadingPos, loadReadingPos } from "./state/store";
 import {
   closeDocument,
   isApiError,
   openDocument,
+  readTextDoc,
   saveDocument,
   undoDocument,
   redoDocument,
@@ -14,9 +16,11 @@ import {
 } from "./lib/ipc";
 import type { AnnotationInfo } from "./lib/ipc";
 import type { BookmarkNode } from "./lib/ipc";
+import { isPdfPath, MARKDOWN_EXTS, HTML_EXTS, EPUB_EXTS, TEXT_AND_CODE_EXTS } from "./lib/docPath";
 import Toolbar from "./components/Toolbar";
 import Rail from "./components/Rail";
 import Canvas from "./components/Canvas";
+import Reader from "./components/Reader";
 import ThumbnailPanel from "./components/ThumbnailPanel";
 import SearchPanel from "./components/SearchPanel";
 import TaskPanel from "./components/TaskPanel";
@@ -202,6 +206,7 @@ function PasswordDialog({ path, onDone }: { path: string; onDone: () => void }) 
 export default function App() {
   const theme = useApp((s) => s.theme);
   const docId = useApp((s) => s.docId);
+  const docKind = useApp((s) => s.docKind);
   const leftVisible = useApp((s) => s.leftVisible);
   const fileName = useApp((s) => s.fileName);
   const pageCount = useApp((s) => s.pageCount);
@@ -226,7 +231,7 @@ export default function App() {
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  const doOpen = useCallback(
+  const openPdf = useCallback(
     async (path: string) => {
       const st = useApp.getState();
       st.setLoading(true);
@@ -268,10 +273,39 @@ export default function App() {
     [t],
   );
 
+  /** 统一入口：.pdf 走 PDFium，其余交给原生阅读（reader.rs 会拒绝不支持的格式）。 */
+  const doOpen = useCallback(
+    async (path: string) => {
+      if (isPdfPath(path)) {
+        await openPdf(path);
+        return;
+      }
+      const st = useApp.getState();
+      st.setLoading(true);
+      try {
+        const payload = await readTextDoc(path);
+        st.setTextDoc(payload, path);
+        st.pushToast("info", t("已打开 {name}", { name: payload.fileName }));
+      } catch (e) {
+        st.errorToast(e);
+      } finally {
+        useApp.getState().setLoading(false);
+      }
+    },
+    [openPdf, t],
+  );
+
   const onOpenFile = useCallback(async () => {
     const picked = await open({
       multiple: false,
-      filters: [{ name: t("PDF 文档"), extensions: ["pdf"] }],
+      filters: [
+        { name: t("PDF 文档"), extensions: ["pdf"] },
+        { name: t("Markdown 文档"), extensions: MARKDOWN_EXTS },
+        { name: t("网页文件"), extensions: HTML_EXTS },
+        { name: t("电子书"), extensions: EPUB_EXTS },
+        { name: t("文本与源码"), extensions: TEXT_AND_CODE_EXTS },
+        { name: t("所有文件"), extensions: ["*"] },
+      ],
     });
     if (typeof picked === "string") doOpen(picked);
   }, [doOpen, t]);
@@ -335,6 +369,29 @@ export default function App() {
     resetZoom,
   });
 
+  // 原生拖拽打开：桌面端只有 Tauri 事件能拿到真实文件路径（HTML5 drop 拿不到）
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let disposed = false;
+    getCurrentWebview()
+      .onDragDropEvent((event) => {
+        if (event.payload.type !== "drop") return;
+        const path = event.payload.paths[0];
+        if (path) doOpen(path);
+      })
+      .then((fn) => {
+        if (disposed) fn();
+        else unlisten = fn;
+      })
+      .catch(() => {
+        /* 非 Tauri 环境（如浏览器预览）没有该 API，忽略 */
+      });
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [doOpen]);
+
   // 阅读位置记忆（节流保存）
   useEffect(() => {
     if (docId === null) return;
@@ -356,18 +413,23 @@ export default function App() {
     };
   }, [docId]);
 
+  // 原生阅读（非 PDF）没有页面/缩略图/书签，左面板整体不参与布局
+  const showLeft = leftVisible && docKind === "pdf";
+
   return (
-    <div className={`shell${leftVisible ? "" : " no-left"}`}>
+    <div className={`shell${showLeft ? "" : " no-left"}`}>
       <Toolbar onOpenFile={onOpenFile} onUndo={onUndo} onRedo={onRedo} />
       <Rail />
-      <LeftPanel />
+      {docKind === "pdf" && <LeftPanel />}
       {docId !== null ? (
         <Canvas />
+      ) : docKind === "text" ? (
+        <Reader />
       ) : (
         <div className="canvas-wrap">
           <div className="empty">
             <span className="big">📄</span>
-            <span>{t("打开一个 PDF 文件开始阅读")}</span>
+            <span>{t("打开一个文档开始阅读")}</span>
             <button onClick={onOpenFile} disabled={loading}>
               {loading ? t("加载中…") : t("打开文件")}
             </button>

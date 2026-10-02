@@ -7,6 +7,7 @@ export default function StatusBar() {
   const pageCount = useApp((s) => s.pageCount);
   const dirty = useApp((s) => s.dirty);
   const docId = useApp((s) => s.docId);
+  const docKind = useApp((s) => s.docKind);
   const scale = useApp((s) => s.scale);
   const setScale = useApp((s) => s.setScale);
   const setFitMode = useApp((s) => s.setFitMode);
@@ -14,6 +15,18 @@ export default function StatusBar() {
   const jumpToPage = useApp((s) => s.jumpToPage);
   const [pageText, setPageText] = useState("");
   const t = useT();
+
+  // 原生阅读：没有页码与缩放，只提示文件与只读状态
+  if (docKind === "text") {
+    return (
+      <footer className="statusbar">
+        <span title={fileName}>
+          {fileName} · {t("只读")}
+        </span>
+        <span className="grow" />
+      </footer>
+    );
+  }
 
   if (docId === null) {
     return (

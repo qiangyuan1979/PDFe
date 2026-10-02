@@ -708,6 +708,30 @@ export function convertEbookToPdf(toolPath: string, opts: ConvertEbookOpts): Pro
   return invoke<string>("convert_ebook_to_pdf", { toolPath, opts });
 }
 
+// ---------- 原生阅读（v2：非 PDF 文档） ----------
+
+/** 原生阅读文档类别；`text` 为纯文本，`code` 为源码，二者都走纯文本渲染。 */
+export type TextDocKind = "markdown" | "html" | "epub" | "text" | "code";
+
+export interface TextDocPayload {
+  kind: TextDocKind;
+  title: string;
+  fileName: string;
+  fileSizeBytes: number;
+  /** 后端探测到的编码名，如 "utf-8" / "gbk"。 */
+  encoding: string;
+  /** 仅 code 类文档有值（文件扩展名），用于展示。 */
+  language: string | null;
+  /** markdown / epub 渲染后的 HTML；纯文本与源码为 null。 */
+  html: string | null;
+  /** 纯文本与源码的原文；markdown / epub 为 null。 */
+  text: string | null;
+}
+
+export function readTextDoc(path: string): Promise<TextDocPayload> {
+  return invoke<TextDocPayload>("read_text_doc", { path });
+}
+
 // ---------- 表单（P5+P6 AcroForm） ----------
 
 export type FormFieldKind =
