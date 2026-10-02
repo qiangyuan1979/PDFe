@@ -572,4 +572,158 @@ mod tests {
         let c = r#"<container><rootfiles><rootfile full-path="OEBPS%20x/content.opf"/></rootfiles></container>"#;
         assert_eq!(find_rootfile_path(c).as_deref(), Some("OEBPS x/content.opf"));
     }
+
+    // ---------- EPUB 端到端（真实 zip，此前零覆盖） ----------
+
+    /// 在内存里构造一个 epub：manifest 故意逆序、spine 正序；标题带 XML 实体；
+    /// ch1 引用一张 1×1 PNG 用于验证 data URL 内联。
+    fn build_sample_epub() -> Vec<u8> {
+        use base64::Engine as _;
+
+        let png = base64::engine::general_purpose::STANDARD
+            .decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+            )
+            .unwrap();
+
+        let container = r#"<?xml version="1.0"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>"#;
+
+        let opf = r#"<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>原生阅读验证书 &amp; 附录</dc:title>
+    <dc:identifier id="id">urn:uuid:test</dc:identifier>
+  </metadata>
+  <manifest>
+    <item id="c2" href="Text/ch2.xhtml" media-type="application/xhtml+xml"/>
+    <item id="css" href="Styles/main.css" media-type="text/css"/>
+    <item id="c1" href="Text/ch1.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="c1"/>
+    <itemref idref="c2"/>
+  </spine>
+</package>"#;
+
+        let ch1 = r#"<html xmlns="http://www.w3.org/1999/xhtml"><head><title>ch1</title></head>
+<body><h1>第一章</h1><p>正文一</p><img src="../Images/dot.png" alt="dot"/></body></html>"#;
+
+        let ch2 = r#"<html xmlns="http://www.w3.org/1999/xhtml"><head><title>ch2</title></head>
+<body><blockquote>第二章引用</blockquote></body></html>"#;
+
+        fn put(zip: &mut zip::ZipWriter<Cursor<Vec<u8>>>, name: &str, data: &[u8]) {
+            use std::io::Write as _;
+            let opts = zip::write::SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Deflated);
+            zip.start_file(name, opts).unwrap();
+            zip.write_all(data).unwrap();
+        }
+
+        let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
+        put(&mut zip, "mimetype", b"application/epub+zip");
+        put(&mut zip, "META-INF/container.xml", container.as_bytes());
+        put(&mut zip, "OEBPS/content.opf", opf.as_bytes());
+        put(&mut zip, "OEBPS/Styles/main.css", b"h1 { color: red }");
+        put(&mut zip, "OEBPS/Text/ch1.xhtml", ch1.as_bytes());
+        put(&mut zip, "OEBPS/Text/ch2.xhtml", ch2.as_bytes());
+        put(&mut zip, "OEBPS/Images/dot.png", &png);
+        zip.finish().unwrap().into_inner()
+    }
+
+    #[test]
+    fn reads_epub_zip_end_to_end() {
+        let bytes = build_sample_epub();
+        let (html, title) = read_epub(&bytes).expect("真实 zip 应能解析");
+        assert_eq!(title.as_deref(), Some("原生阅读验证书 & 附录"));
+
+        // 正文按 spine 顺序（ch1 → ch2），而不是 manifest 里的逆序
+        let p1 = html.find("第一章").expect("缺少第一章");
+        let p2 = html.find("第二章引用").expect("缺少第二章");
+        assert!(p1 < p2, "spine 顺序应为 ch1 在前");
+
+        assert!(html.contains("data-index=\"0\""));
+        assert!(html.contains("data-index=\"1\""));
+        // 图片内联成 data URL，且 alt 属性未被误伤
+        assert!(html.contains("data:image/png;base64,iVBORw0KGgo"));
+        assert!(html.contains("alt=\"dot\""));
+        // 不在 spine 里的 CSS 不应混进正文
+        assert!(!html.contains("color: red"));
+    }
+
+    #[test]
+    fn read_text_doc_dispatches_epub_and_serializes_camel_case() {
+        let bytes = build_sample_epub();
+        let dir = std::env::temp_dir().join("pdfe-reader-verify");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("native reading 验证.epub");
+        std::fs::write(&path, &bytes).unwrap();
+
+        let payload =
+            tauri::async_runtime::block_on(read_text_doc(path.to_string_lossy().into_owned()))
+                .expect("epub 应能通过命令层打开");
+
+        assert_eq!(payload.kind, "epub");
+        assert_eq!(payload.title, "原生阅读验证书 & 附录");
+        assert_eq!(payload.file_name, "native reading 验证.epub");
+        assert_eq!(payload.file_size_bytes, bytes.len() as u64);
+        assert_eq!(payload.encoding, "utf-8"); // epub 分支不做编码探测
+        assert!(payload.text.is_none());
+        assert!(payload.html.as_deref().unwrap().contains("第一章"));
+
+        // 前端 ipc.ts 依赖 camelCase 字段名，序列化契约必须稳定
+        let v = serde_json::to_value(&payload).unwrap();
+        for key in ["fileName", "fileSizeBytes", "encoding", "language", "html", "text"] {
+            assert!(v.get(key).is_some(), "序列化缺少字段 {key}");
+        }
+
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn read_text_doc_dispatches_all_native_kinds() {
+        let dir = std::env::temp_dir().join("pdfe-reader-verify-kinds");
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let read = |name: &str| {
+            let path = dir.join(name);
+            tauri::async_runtime::block_on(read_text_doc(path.to_string_lossy().into_owned()))
+        };
+
+        let cases: &[(&str, &[u8], &str, Option<&str>)] = &[
+            ("a.md", b"# t\n\npara\n", "markdown", None),
+            ("a.html", b"<h1>hi</h1>", "html", None),
+            ("a.txt", b"hello", "text", None),
+            ("a.rs", b"fn main() {}", "code", Some("rs")),
+        ];
+        for (name, data, kind, lang) in cases {
+            std::fs::write(dir.join(name), data).unwrap();
+            let p = read(name).unwrap_or_else(|e| panic!("{name} 应能打开：{e:?}"));
+            assert_eq!(&p.kind, kind, "{name} 的 kind 不符");
+            assert_eq!(p.language.as_deref(), *lang, "{name} 的 language 不符");
+            if matches!(*kind, "code" | "text") {
+                assert!(p.text.is_some() && p.html.is_none(), "{name} 应走纯文本");
+            } else {
+                assert!(p.html.is_some() && p.text.is_none(), "{name} 应走 HTML 渲染");
+            }
+        }
+
+        // 中文 Windows 常见的 GBK txt 必须被探测出来，而不是按 UTF-8 乱码
+        let (gbk, _, _) = encoding_rs::GBK.encode("中文 GBK 文本");
+        std::fs::write(dir.join("gbk.txt"), &gbk).unwrap();
+        let p = read("gbk.txt").unwrap();
+        assert_eq!(p.text.as_deref(), Some("中文 GBK 文本"));
+        assert_ne!(p.encoding, "utf-8");
+
+        // 不支持的扩展名应明确报错，而不是静默乱猜
+        std::fs::write(dir.join("a.mobi"), b"x").unwrap();
+        let err = read("a.mobi").unwrap_err();
+        assert_eq!(err.code(), "unsupported_format");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }
