@@ -4,7 +4,7 @@
 
 ## 状态
 
-**功能完整度（参考 [docs/superpowers/plans/2026-09-18-implementation-plan.md](docs/superpowers/plans/2026-09-18-implementation-plan.md)）**：
+**功能完整度（参考 [docs-internal/superpowers/plans/2026-09-18-implementation-plan.md](docs-internal/superpowers/plans/2026-09-18-implementation-plan.md)）**：
 
 - ✅ **M0** 环境与骨架
 - ✅ **M1** 文档核心管线（PDFium 集成、打开/保存、撤销栈）
@@ -13,7 +13,7 @@
 - ✅ **M4** 水印（添加/去除 - 自动检测 + 手动框选）
 - ✅ **M5** 深度编辑（双击文字重写、新增文本框、图片替换、扫描版检测）
 - ✅ **M6** 安全 + 导出（明文副本、内存去加密、PNG/JPEG 导出含 DPI）
-- ✅ **M7** 打磨（性能优化、错误处理 review、性能基线）
+- ✅ **M7** 打磨（性能优化、错误处理 review、性能基线）+ MSIX 打包与 Store 认证提交（结果待出）
 - ✅ **P1** 快捷键体系（Ctrl+1/2/3 视图、Ctrl+Shift+L 中英日三语循环）
 - ✅ **P2** 批注功能（6 种类型：高亮/下划线/删除线/便签/自由文本/矩形）
 - ✅ **P3** 多语言扩展（中英日三语 i18n）
@@ -62,9 +62,9 @@ powershell -ExecutionPolicy Bypass -File scripts\build-msix.ps1 -Sign None
 
 # 出提交 Microsoft Store 的正式包：注入 Partner Center「产品标识」三个值，由微软重签
 powershell -ExecutionPolicy Bypass -File scripts\build-msix.ps1 -Sign None `
-  -IdentityName 12345KonnyYuan.PDFe `
-  -Publisher "CN=d9e5f0b8-0000-0000-0000-000000000000" `
-  -PublisherDisplayName "Konny Yuan"
+  -IdentityName CCB6DC78.PDFe `
+  -Publisher "CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F" `
+  -PublisherDisplayName "老袁不圆润"
 ```
 
 清单模板在 `src-tauri/msix/AppxManifest.xml`（full-trust Win32：
@@ -82,9 +82,11 @@ powershell -ExecutionPolicy Bypass -File scripts\build-msix.ps1 -Sign None `
 > 以服务账户运行，读不到 `CurrentUser` 的证书存储；缺失时会报
 > `0x800B0109 应用包或捆绑包中的签名的根证书必须是受信任的证书`。
 > 该写入需要管理员权限，脚本在非管理员终端下会自动请求提权（弹 UAC）。
-> 尚未上架 Microsoft Store —— Store 上架需用 `-IdentityName` / `-Publisher` /
-> `-PublisherDisplayName` 注入 Partner Center 分配的产品标识并由微软重签，
-> 自备证书只用于本机侧载。
+> **已提交 Microsoft Store 认证（结果待出）** —— 上架包用 `-IdentityName` / `-Publisher` /
+> `-PublisherDisplayName` 注入 Partner Center 分配的产品标识并由微软重签；自备证书只用于本机侧载。
+> ⚠️ 提交后包二进制不得再改动。中文 `PublisherDisplayName` 直接写在命令行可能被 PowerShell 5.1
+> 按 GBK 解码成乱码，建议写成 UTF-8 文件后用 `[System.IO.File]::ReadAllText(..., UTF8)` 读入再传参。
+> 三个标识值与踩坑记录见 [docs-internal/store-listing-materials.md](docs-internal/store-listing-materials.md) §4。
 
 ## 测试
 

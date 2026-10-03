@@ -17,7 +17,7 @@
     可执行文件名保持一致。
 
   本地自签名侧载测试用脚本默认值即可；上架 Microsoft Store 时必须换成 Partner Center
-  分配的产品标识值（见 docs/store-listing-materials.md §4）。
+  分配的产品标识值（见 docs-internal/store-listing-materials.md §4）。
 -->
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
