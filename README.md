@@ -92,12 +92,15 @@ powershell -ExecutionPolicy Bypass -File scripts\build-msix.ps1 -Sign None `
 
 | 类型 | 数量 | 位置 |
 |------|------|------|
-| Rust 单元/集成 | **315** | `src-tauri/tests/`（含 `commands.rs` 命令层 6 场景） |
+| Rust 单元测试（lib） | **162** | `src-tauri/src/`（`cargo test --lib`） |
+| Rust 集成测试 | **173** | `src-tauri/tests/`（不含 E2E/性能；含 `commands.rs` 命令层 6 场景） |
 | Rust 端到端 (E2E) | **8 场景** | `src-tauri/tests/e2e.rs` |
 | TypeScript 类型检查 | 0 错误 | `npx tsc --noEmit` |
 | 性能基线（2/100/500 页） | 20 项 | `src-tauri/tests/perf.rs`、`perf_memory.rs` |
 
-合计 **343** 项 Rust 测试（`cargo test -- --test-threads=1` 全绿）。
+合计 **363** 项 Rust 测试（lib 162 + 集成 173 + E2E 8 + 性能 20），`cargo test -- --test-threads=1` 全绿。
+
+> ⚠️ 必须加 `--test-threads=1`：PDFium 非线程安全，并行跑会随机触发 `STATUS_HEAP_CORRUPTION`（0xc0000374）。
 
 E2E 测试覆盖跨模块业务场景：打开→浏览/搜索→编辑（注释/文本重写）→重开验证；不启动 Tauri runtime，直接调用各模块的 `_logic` 纯函数，验证 bytes 跨步骤流转 + 持久化正确。
 
