@@ -1,6 +1,7 @@
 import { useApp } from "../state/store";
 import type { TaskId } from "../state/store";
 import { useT } from "../i18n";
+import { useAppVersion } from "../hooks/useAppVersion";
 
 const TOOLS: { id: Exclude<TaskId, null>; label: string; icon: string }[] = [
   { id: "merge", label: "合并", icon: "🗂" },
@@ -38,6 +39,7 @@ export default function Toolbar({
   const setHelpOpen = useApp((s) => s.setHelpOpen);
   const locale = useApp((s) => s.locale);
   const setLocale = useApp((s) => s.setLocale);
+  const version = useAppVersion();
 
   return (
     <header className="toolbar">
@@ -116,6 +118,11 @@ export default function Toolbar({
       <button className="tbtn" onClick={() => setHelpOpen(true)} title={t("帮助（? 或 F1）")}>
         ?
       </button>
+      {version && (
+        <span className="appver" title={t("应用版本")}>
+          v{version}
+        </span>
+      )}
     </header>
   );
 }

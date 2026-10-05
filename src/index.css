@@ -113,6 +113,13 @@ input:focus {
   background: var(--border);
   margin: 0 6px;
 }
+.toolbar .appver {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
 .tbtn {
   display: inline-flex;
   align-items: center;

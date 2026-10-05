@@ -1,5 +1,6 @@
 import { useApp } from "../state/store";
 import { useT } from "../i18n";
+import { useAppVersion } from "../hooks/useAppVersion";
 
 const SHORTCUT_KEYS = [
   {
@@ -117,6 +118,7 @@ export default function HelpPanel() {
   const helpOpen = useApp((s) => s.helpOpen);
   const setHelpOpen = useApp((s) => s.setHelpOpen);
   const t = useT();
+  const version = useAppVersion();
 
   if (!helpOpen) return null;
 
@@ -153,7 +155,14 @@ export default function HelpPanel() {
             marginBottom: 16,
           }}
         >
-          <h2 style={{ margin: 0 }}>{t("PDFe 帮助")}</h2>
+          <h2 style={{ margin: 0 }}>
+            {t("PDFe 帮助")}
+            {version && (
+              <span style={{ marginLeft: 10, fontSize: 13, fontWeight: 400, color: "var(--fg-dim)" }}>
+                v{version}
+              </span>
+            )}
+          </h2>
           <button onClick={() => setHelpOpen(false)} title={t("关闭（Esc）")}>
             ✕
           </button>
