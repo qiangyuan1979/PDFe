@@ -1,7 +1,7 @@
 # PDFe · Microsoft Store 上架素材
 
 本文记录**规格清单 + 截图脚本 + 商店文案**，以及 Partner Center 侧的提交进度。
-**已提交认证**（上传未签名包 `PDFe_0.1.0_x64.unsigned.msix`），截至 2026-10-03 **认证结果待出**；提交后包二进制不得再改动。
+**已提交认证并已通过**（上传未签名包 `PDFe_0.1.0_x64.unsigned.msix`，版本 `0.1.0.0`，2026-10-04 用户确认 Store 认证通过，可从 Microsoft Store 安装）；提交后包二进制不得再改动。
 逐项状态见 §5 / §5.1，与 [实施计划](superpowers/plans/2026-09-18-implementation-plan.md) M7 节对应。
 
 ## 0. 事实基线
@@ -446,7 +446,7 @@ System requirements: Windows 10 version 1809 or later (x64).
   https://qiangyuan1979.github.io/PDFe/store-listing/privacy-policy.html
   ```
 
-  源文件三形态见 [`store-listing/privacy-policy.md`](../docs/store-listing/privacy-policy.md) / [`.html`](../docs/store-listing/privacy-policy.html) / [`.txt`](../docs/store-listing/privacy-policy.txt)；托管方式为 GitHub Pages（Settings → Pages → Source「Deploy from a branch」+ `main` + `/docs`）。提交必须填**以 `.html` 结尾**的地址，不能填 `.md`。联系方式由仓库 Issues 页承载。⚠️ 路线 A 会把整个 `docs/` 目录作为网站公开，故该目录内**不得**出现内部备注/密钥类内容。
+  源文件三形态见 [`store-listing/privacy-policy.md`](../docs/store-listing/privacy-policy.md) / [`.html`](../docs/store-listing/privacy-policy.html) / [`.txt`](../docs/store-listing/privacy-policy.txt)；托管方式为 GitHub Pages（Settings → Pages → Source「Deploy from a branch」+ `main` + `/docs`）。提交必须填**以 `.html` 结尾**的地址，不能填 `.md`。联系方式由仓库 Issues 页承载。⚠️ 路线 A 会把整个 `docs/` 目录作为网站公开，故该目录内**不得**出现内部备注/密钥类内容。**2026-10-04 复验：隐私政策改动已在商店侧生效（用户确认）。**
 - **产品类型**：必须选 **MSIX/PWA**，不要选「独立 .exe/.msi 安装程序包」。后者要求提交**版本化 HTTPS 直链**（需自建托管并自行维护更新链接）、**自备链接到 Microsoft Trusted Root Program 的 CA 代码签名证书**（Store 不重签）、提交**静默离线安装器**（不可为下载器 stub），且提交后二进制不得更改。MSIX 路径由**微软免费重签 + 免费 CDN 托管 + 自动更新**，与现有打包链路直接对接。
 - **身份替换**：三个值取自 Partner Center「产品管理 → 产品标识」——`包/标识/名称`（Identity `Name`）、`包/标识/发布者`（Identity `Publisher`，微软重签由平台处理，无需与本地证书一致）、`包/属性/发布者显示名称`（`PublisherDisplayName`）。打包脚本已参数化（`-IdentityName` / `-Publisher` / `-PublisherDisplayName`），详见 [README](../README.md) 的 MSIX 小节。
   **2026-09-26 已取得实际值并出包**：
@@ -506,4 +506,4 @@ System requirements: Windows 10 version 1809 or later (x64).
 - [x] ⑤ `商店一览` 逐语言填文案（§3.1 简短说明 / §3.2 说明 / §3.3 产品功能），上传 300×300 图标与 ≥4 张截图（§2）
 - [x] ⑥ 补充字段：短标题 / 排序标题 / 语音标题 / 系统要求（§3.4）；`此版本中的新增功能` 首次提交**留空**
 - [x] ⑦ `价格和可用性` / `属性` / `年龄分级` 按 §4 决策填写
-- [x] ⑧ 所有页面 Incomplete 清零后点 **`提交认证`**；**提交后包二进制不得再改动**（已提交认证，结果待出）
+- [x] ⑧ 所有页面 Incomplete 清零后点 **`提交认证`**；**提交后包二进制不得再改动**（已提交认证并**已通过**：0.1.0.0 已上架，可从 Microsoft Store 安装）
