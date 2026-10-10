@@ -1159,6 +1159,30 @@ input[type="color"] {
   border: 0;
   background: #fff;
 }
+.reader-md-edit {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.reader-md-source {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  resize: none;
+  outline: none;
+  background: var(--bg-panel);
+  color: var(--fg);
+  font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 4;
+}
+.reader-dirty {
+  color: var(--accent);
+}
 .reader-text-view {
   flex: 1;
   overflow: auto;

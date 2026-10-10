@@ -726,10 +726,22 @@ export interface TextDocPayload {
   html: string | null;
   /** 纯文本与源码的原文；markdown / epub 为 null。 */
   text: string | null;
+  /** markdown 原始源码，供编辑器修改；其余格式为 null。 */
+  source: string | null;
 }
 
 export function readTextDoc(path: string): Promise<TextDocPayload> {
   return invoke<TextDocPayload>("read_text_doc", { path });
+}
+
+/** 把 markdown 源码渲染成 HTML（编辑器实时预览用）。 */
+export function renderMarkdown(text: string): Promise<string> {
+  return invoke<string>("render_markdown", { text });
+}
+
+/** 把文本内容按 UTF-8 写回磁盘（markdown 保存用）。 */
+export function saveTextDoc(path: string, content: string): Promise<void> {
+  return invoke<void>("save_text_doc", { path, content });
 }
 
 // ---------- 表单（P5+P6 AcroForm） ----------

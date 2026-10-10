@@ -1,10 +1,13 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../state/store";
-import type { TextDocKind } from "../lib/ipc";
+import { renderMarkdown, type TextDocKind } from "../lib/ipc";
 import { useT } from "../i18n";
 
 /** 纯文本渲染行数上限：超出后截断，避免超长文本拖垮 DOM（与后端 64MB 上限互补）。 */
 const MAX_TEXT_LINES = 20000;
+
+/** markdown 编辑时实时预览的防抖间隔（毫秒）。 */
+const PREVIEW_DEBOUNCE_MS = 200;
 
 const KIND_LABEL: Record<TextDocKind, string> = {
   markdown: "Markdown 文档",
@@ -45,10 +48,36 @@ hr{border:0;border-top:1px solid ${border}}
 </style></head><body>${body}</body></html>`;
 }
 
-export default function Reader() {
+export default function Reader({ onSave }: { onSave: () => void }) {
   const textDoc = useApp((s) => s.textDoc);
   const theme = useApp((s) => s.theme);
+  const dirty = useApp((s) => s.dirty);
+  const mdDraft = useApp((s) => s.mdDraft);
+  const setMdDraft = useApp((s) => s.setMdDraft);
+  const mdEditing = useApp((s) => s.mdEditing);
+  const setMdEditing = useApp((s) => s.setMdEditing);
   const t = useT();
+
+  const isMarkdown = textDoc?.kind === "markdown";
+  const canEditMd = isMarkdown && mdDraft !== null;
+
+  // 编辑态的实时预览：源码变化后防抖调用后端渲染（与打开时同一套 pulldown-cmark 规则）
+  const [previewHtml, setPreviewHtml] = useState("");
+  useEffect(() => {
+    if (!canEditMd || !mdEditing || mdDraft === null) return;
+    let cancelled = false;
+    const id = window.setTimeout(() => {
+      renderMarkdown(mdDraft)
+        .then((html) => {
+          if (!cancelled) setPreviewHtml(html);
+        })
+        .catch(() => {});
+    }, PREVIEW_DEBOUNCE_MS);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(id);
+    };
+  }, [canEditMd, mdEditing, mdDraft]);
 
   const textLines = useMemo(() => {
     if (!textDoc || (textDoc.kind !== "text" && textDoc.kind !== "code")) return null;
@@ -71,6 +100,17 @@ export default function Reader() {
     <div className="reader-wrap">
       <div className="reader-bar">
         <span className="reader-kind">{t(KIND_LABEL[textDoc.kind])}</span>
+        {canEditMd && (
+          <>
+            <button className="tbtn" onClick={() => setMdEditing(!mdEditing)}>
+              {mdEditing ? t("预览") : t("编辑")}
+            </button>
+            <button className="tbtn" onClick={onSave} disabled={!dirty}>
+              {t("保存")}
+            </button>
+            {dirty && <span className="reader-dirty">{t("未保存")}</span>}
+          </>
+        )}
         <span style={{ flex: 1 }} />
         <span>{t("编码：{enc}", { enc: textDoc.encoding })}</span>
         {textDoc.language && <span>{t("语言：{lang}", { lang: textDoc.language })}</span>}
@@ -84,6 +124,21 @@ export default function Reader() {
             </pre>
             <pre className="reader-text">{textLines?.body}</pre>
           </div>
+        </div>
+      ) : canEditMd && mdEditing ? (
+        <div className="reader-md-edit">
+          <textarea
+            className="reader-md-source"
+            value={mdDraft ?? ""}
+            onChange={(e) => setMdDraft(e.target.value)}
+            spellCheck={false}
+          />
+          <iframe
+            className="reader-frame"
+            title={textDoc.fileName}
+            sandbox=""
+            srcDoc={wrapHtml(previewHtml || textDoc.html || "", theme === "dark")}
+          />
         </div>
       ) : (
         <iframe

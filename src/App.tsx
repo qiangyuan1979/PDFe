@@ -8,6 +8,7 @@ import {
   openDocument,
   readTextDoc,
   saveDocument,
+  saveTextDoc,
   undoDocument,
   redoDocument,
   getBookmarks,
@@ -313,6 +314,18 @@ export default function App() {
 
   const onSave = useCallback(async () => {
     const st = useApp.getState();
+    // 原生阅读文档：目前仅 markdown 可编辑保存
+    if (st.docKind === "text") {
+      if (st.mdDraft === null || st.filePath === null || !st.dirty) return;
+      try {
+        await saveTextDoc(st.filePath, st.mdDraft);
+        st.markDirty(false);
+        st.pushToast("info", t("已保存"));
+      } catch (e) {
+        st.errorToast(e);
+      }
+      return;
+    }
     if (st.docId === null) return;
     try {
       await saveDocument(st.docId);
@@ -425,7 +438,7 @@ export default function App() {
       {docId !== null ? (
         <Canvas />
       ) : docKind === "text" ? (
-        <Reader />
+        <Reader onSave={onSave} />
       ) : (
         <div className="canvas-wrap">
           <div className="empty">

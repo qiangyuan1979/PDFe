@@ -55,12 +55,12 @@ export function useShortcuts(h: ShortcutHandlers): void {
           h.onOpenFile();
           return;
         }
-        if (!pdf) return;
         if (key === "s") {
           e.preventDefault();
           h.onSave();
           return;
         }
+        if (!pdf) return;
         if (key === "f") {
           e.preventDefault();
           st.setSearchOpen(true);

@@ -128,6 +128,10 @@ interface AppState {
   docKind: DocKind;
   /** 原生阅读载荷；仅 `docKind === "text"` 时非空。 */
   textDoc: TextDocPayload | null;
+  /** markdown 编辑草稿；仅 markdown 文档非空，其余为 null。 */
+  mdDraft: string | null;
+  /** markdown 是否处于编辑模式（false = 预览）。 */
+  mdEditing: boolean;
   fileName: string;
   filePath: string | null;
   /** 磁盘文件字节数；来自后端 DocumentInfo.fileSizeBytes。 */
@@ -219,6 +223,10 @@ interface AppState {
   setDoc: (info: DocumentInfo, path: string | null) => void;
   /** 打开原生阅读文档（非 PDF）；内部会把 `docId` 置空并清掉 PDF 专属状态。 */
   setTextDoc: (payload: TextDocPayload, path: string | null) => void;
+  /** 更新 markdown 草稿（编辑时调用，会置 dirty）。 */
+  setMdDraft: (s: string) => void;
+  /** 切换 markdown 预览 / 编辑模式。 */
+  setMdEditing: (b: boolean) => void;
   clearDoc: () => void;
   setViewMode: (m: ViewMode) => void;
   setScale: (s: number) => void;
@@ -318,6 +326,8 @@ export const useApp = create<AppState>((set, get) => ({
   docId: null,
   docKind: "pdf",
   textDoc: null,
+  mdDraft: null,
+  mdEditing: false,
   fileName: "",
   filePath: null,
   fileSizeBytes: 0,
@@ -407,6 +417,8 @@ export const useApp = create<AppState>((set, get) => ({
       docId: info.docId,
       docKind: "pdf",
       textDoc: null,
+      mdDraft: null,
+      mdEditing: false,
       fileName: info.fileName,
       filePath: path,
       fileSizeBytes: info.fileSizeBytes,
@@ -438,6 +450,8 @@ export const useApp = create<AppState>((set, get) => ({
       docId: null,
       docKind: "text",
       textDoc: payload,
+      mdDraft: payload.kind === "markdown" ? (payload.source ?? "") : null,
+      mdEditing: false,
       fileName: payload.fileName,
       filePath: path,
       fileSizeBytes: payload.fileSizeBytes,
@@ -474,6 +488,8 @@ export const useApp = create<AppState>((set, get) => ({
       docId: null,
       docKind: "pdf",
       textDoc: null,
+      mdDraft: null,
+      mdEditing: false,
       fileName: "",
       filePath: null,
       fileSizeBytes: 0,
@@ -607,6 +623,8 @@ export const useApp = create<AppState>((set, get) => ({
   },
   clearSelection: () => set({ selectedPages: new Set(), thumbFocus: -1 }),
   markDirty: (b) => set({ dirty: b }),
+  setMdDraft: (s) => set({ mdDraft: s, dirty: true }),
+  setMdEditing: (b) => set({ mdEditing: b }),
   setCanUndo: (b) => set({ canUndo: b }),
   setCanRedo: (b) => set({ canRedo: b }),
   setUndoDepth: (n) => set({ undoDepth: n }),

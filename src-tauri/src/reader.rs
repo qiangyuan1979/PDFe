@@ -52,6 +52,8 @@ pub struct TextDocPayload {
     pub html: Option<String>,
     /// text / code 纯文本
     pub text: Option<String>,
+    /// markdown 原始源码（供编辑修改）；其余格式为 null
+    pub source: Option<String>,
 }
 
 /// 统一入口：按扩展名分发到 markdown / HTML / EPUB / 纯文本 / 源码。
@@ -90,6 +92,7 @@ pub async fn read_text_doc(path: String) -> AppResult<TextDocPayload> {
         language: None,
         html: None,
         text: None,
+        source: None,
     };
 
     if ext == "epub" {
@@ -110,6 +113,8 @@ pub async fn read_text_doc(path: String) -> AppResult<TextDocPayload> {
     if MARKDOWN_EXTS.contains(&ext.as_str()) {
         payload.kind = "markdown".into();
         payload.html = Some(markdown_to_html(&content));
+        // 保留原始源码，前端编辑器据此修改并保存
+        payload.source = Some(content);
     } else if HTML_EXTS.contains(&ext.as_str()) {
         payload.kind = "html".into();
         payload.html = Some(content);
@@ -127,6 +132,23 @@ pub async fn read_text_doc(path: String) -> AppResult<TextDocPayload> {
     }
 
     Ok(payload)
+}
+
+/// 编辑器实时预览用：把 markdown 源码渲染成 HTML（与打开时完全一致的渲染规则）。
+#[tauri::command]
+pub fn render_markdown(text: String) -> String {
+    markdown_to_html(&text)
+}
+
+/// 把编辑后的内容按 UTF-8 写回磁盘（当前用于 markdown 保存）。
+#[tauri::command]
+pub fn save_text_doc(path: String, content: String) -> AppResult<()> {
+    let p = Path::new(&path);
+    if !p.is_file() {
+        return Err(AppError::SourceNotFound { path });
+    }
+    std::fs::write(p, content.as_bytes())?;
+    Ok(())
 }
 
 // ---------- 编码探测 ----------
@@ -673,11 +695,20 @@ mod tests {
         assert_eq!(payload.file_size_bytes, bytes.len() as u64);
         assert_eq!(payload.encoding, "utf-8"); // epub 分支不做编码探测
         assert!(payload.text.is_none());
+        assert!(payload.source.is_none()); // 非 markdown 不暴露源码
         assert!(payload.html.as_deref().unwrap().contains("第一章"));
 
         // 前端 ipc.ts 依赖 camelCase 字段名，序列化契约必须稳定
         let v = serde_json::to_value(&payload).unwrap();
-        for key in ["fileName", "fileSizeBytes", "encoding", "language", "html", "text"] {
+        for key in [
+            "fileName",
+            "fileSizeBytes",
+            "encoding",
+            "language",
+            "html",
+            "text",
+            "source",
+        ] {
             assert!(v.get(key).is_some(), "序列化缺少字段 {key}");
         }
 
@@ -723,6 +754,43 @@ mod tests {
         std::fs::write(dir.join("a.mobi"), b"x").unwrap();
         let err = read("a.mobi").unwrap_err();
         assert_eq!(err.code(), "unsupported_format");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn markdown_exposes_source_and_saves_round_trip() {
+        let dir = std::env::temp_dir().join("pdfe-reader-md-edit");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("note.md");
+        let original = "# 标题\n\n正文\n";
+        std::fs::write(&path, original.as_bytes()).unwrap();
+
+        let payload =
+            tauri::async_runtime::block_on(read_text_doc(path.to_string_lossy().into_owned()))
+                .unwrap();
+        assert_eq!(payload.kind, "markdown");
+        assert_eq!(payload.source.as_deref(), Some(original));
+        assert!(payload.text.is_none(), "markdown 仍不走纯文本通道");
+
+        // 预览渲染与打开时的渲染一致
+        assert_eq!(
+            Some(render_markdown(payload.source.clone().unwrap())),
+            payload.html
+        );
+
+        // 写回后再读，内容应被更新
+        let edited = "# 改过的标题\n\n新正文\n";
+        save_text_doc(path.to_string_lossy().into_owned(), edited.into()).unwrap();
+        let again =
+            tauri::async_runtime::block_on(read_text_doc(path.to_string_lossy().into_owned()))
+                .unwrap();
+        assert_eq!(again.source.as_deref(), Some(edited));
+
+        // 路径不存在时应明确报错，而不是静默创建
+        let missing = dir.join("nope.md");
+        let err = save_text_doc(missing.to_string_lossy().into_owned(), "x".into()).unwrap_err();
+        assert_eq!(err.code(), "source_not_found");
 
         let _ = std::fs::remove_dir_all(&dir);
     }

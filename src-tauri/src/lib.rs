@@ -39,6 +39,8 @@ pub fn run() {
             render::search_page_text,
             render::pick_text_at_point,
             reader::read_text_doc,
+            reader::render_markdown,
+            reader::save_text_doc,
             pages::rotate_pages,
             pages::delete_pages,
             pages::duplicate_pages,

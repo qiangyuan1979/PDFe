@@ -33,6 +33,8 @@ const en: Record<string, string> = {
   放大: "Zoom in",
   适应页面: "Fit page",
   未保存: "unsaved",
+  预览: "Preview",
+  保存: "Save",
   // ---------- 活动栏 ----------
   页面缩略图: "Thumbnails",
   书签: "Bookmarks",
@@ -652,6 +654,8 @@ const ja: Record<string, string> = {
   放大: "拡大",
   适应页面: "ページに合わせる",
   未保存: "未保存",
+  预览: "プレビュー",
+  保存: "保存",
   // ---------- アクティビティバー ----------
   页面缩略图: "サムネイル",
   书签: "しおり",
