@@ -11,10 +11,10 @@
 | 项 | 值 |
 |----|----|
 | 产品名 | PDFe（`productName` = `pdfe`，窗口标题 `PDFe`） |
-| 版本 | `0.1.0` |
+| 版本 | 开发中 `0.2.0`（`tauri.conf.json` / `Cargo.toml` / `package.json` 三处同步，MSIX 补齐为 `0.2.0.0`）；**已上架版本 `0.1.0.0`** |
 | 标识 | `com.konnyyuan.pdfe` |
 | MSIX Identity | 清单为占位符 `__IDENTITY_NAME__` / `__PUBLISHER__` / `__PUBLISHER_DISPLAY_NAME__`；本地侧载默认注入 `konnyyuan.pdfe` / `CN=PDFe Local Test` / `PDFe`，上架注入 Partner Center 分配值 `CCB6DC78.PDFe` / `CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F` / `老袁不圆润`（见 §4） |
-| 包系列名 PFN | `CCB6DC78.PDFe_hnyrmxy0d8w`（本地侧载测试的旧包系列为 `konnyyuan.pdfe_6cgrzvqajzfpg`，两者互不影响、可并存） |
+| 包系列名 PFN | `CCB6DC78.PDFe_hmyrrnnxy08dw`（本机从 Store 安装实测包全名 `CCB6DC78.PDFe_0.1.0.0_x64__hmyrrnnxy08dw`；本地侧载测试的旧包系列为 `konnyyuan.pdfe_6cgrzvqajzfpg`，两者互不影响、可并存） |
 | Store ID | `9PC0GZ78MFC41`，商店链接 `https://apps.microsoft.com/detail/9PC0GZ78MFC41` |
 | 打包形态 | MSIX 包装的 full-trust Win32（`Windows.FullTrustApplication` + `rescap:runFullTrust`） |
 | 最低系统 | Windows 10 1809（`10.0.17763.0`），`MaxVersionTested` = Windows 11 22H2（`10.0.22621.0`） |
@@ -431,9 +431,31 @@ System requirements: Windows 10 version 1809 or later (x64).
 | 短标题 | 50 | `PDFe` |
 | 排序标题 | 255 | `PDFe PDF reader editor` |
 | 语音标题 | 255 | `PDFe` |
-| 此版本中的新增功能 | 1500 | 首次提交**留空** |
+| 此版本中的新增功能 | 1500 | 0.1.0 首次提交**留空**；**0.2.0 起填写**（文案见下） |
 | 其他系统要求 · 最低硬件 | ≤11 条 | `Windows 10 1809 或更高（x64）` / `64 位处理器` |
 | 其他系统要求 · 推荐硬件 | ≤11 条 | `Windows 11` / `4 GB 内存或更多` |
+
+#### 3.4.1 「此版本中的新增功能」文案（0.2.0）
+
+- **zh-CN**（Partner Center 中文一览）：
+
+  ```
+  v0.2.0 更新内容
+  · 新增阅读模式：可在应用内直接打开并阅读 Markdown、HTML、EPUB、纯文本与源代码，无需先转换为 PDF
+  · 阅读支持自动编码探测；纯文本与源代码带行号，主题跟随应用明暗设置
+  · 新增版本号显示：工具栏与帮助面板可查看当前应用版本
+  · 稳定性修复与细节优化
+  ```
+
+- **en-US**（Partner Center 英文一览）：
+
+  ```
+  What's new in v0.2.0
+  • New Reading mode: open and read Markdown, HTML, EPUB, plain text and source code directly in the app — no conversion needed
+  • Automatic encoding detection; line numbers for plain text and source code; follows the app light/dark theme
+  • The app version is now shown in the toolbar and the Help panel
+  • Stability fixes and refinements
+  ```
 
 ## 4. Partner Center 侧待决策项（本文不代替决策）
 
@@ -453,7 +475,7 @@ System requirements: Windows 10 version 1809 or later (x64).
   - 包/标识/名称 = `CCB6DC78.PDFe`
   - 包/标识/发布者 = `CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F`（形如 Guid 的 CN，非域名式）
   - 包/属性/发布者显示名称 = `老袁不圆润`
-  - 包系列名（PFN）= `CCB6DC78.PDFe_hnyrmxy0d8w`；Store ID = `9PC0GZ78MFC41`；商店链接 `https://apps.microsoft.com/detail/9PC0GZ78MFC41`
+  - 包系列名（PFN）= `CCB6DC78.PDFe_hmyrrnnxy08dw`；Store ID = `9PC0GZ78MFC41`；商店链接 `https://apps.microsoft.com/detail/9PC0GZ78MFC41`
   - 出包命令：`scripts\build-msix.ps1 -Sign None -IdentityName CCB6DC78.PDFe -Publisher "CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F" -PublisherDisplayName "<发布者显示名称>"`。⚠️ 中文显示名建议写成 UTF-8 文件后用 `[System.IO.File]::ReadAllText(..., UTF8)` 读入再传参，直接写在命令行可能被 PowerShell 5.1 按 GBK 解码成乱码（乱码会原样进清单，Partner Center 校验会再次报 `PublisherDisplayName` 不匹配）。
 - **受限功能 `runFullTrust`**：Medium IL 桌面应用按微软文档**必须**声明该能力，无法移除。Partner Center「提交选项 / Submission options」页需填写用途说明并**点保存**，否则该节保持 Incomplete。
   ⚠️ 该输入框上限 **300 字符（中英合计，含换行）**，故必须用短版；上面那版「加长版」已超限、会被截断，勿再使用。拟填短版（中文 53 + 换行 1 + 英文 237 = **291 字符**，留 9 字符余量）：
@@ -507,3 +529,17 @@ System requirements: Windows 10 version 1809 or later (x64).
 - [x] ⑥ 补充字段：短标题 / 排序标题 / 语音标题 / 系统要求（§3.4）；`此版本中的新增功能` 首次提交**留空**
 - [x] ⑦ `价格和可用性` / `属性` / `年龄分级` 按 §4 决策填写
 - [x] ⑧ 所有页面 Incomplete 清零后点 **`提交认证`**；**提交后包二进制不得再改动**（已提交认证并**已通过**：0.1.0.0 已上架，可从 Microsoft Store 安装）
+
+### 5.2 0.2.0 更新包提交清单（进行中）
+
+> 0.1.0 已通过认证并上架，Store 允许在通过后新建提交。更新硬约束：必须**提升版本号**（`0.2.0 > 0.1.0`），且**同时只允许一个在认证中的提交**。
+
+- [x] 版本升至 `0.2.0`（`package.json` / `package-lock.json` / `Cargo.toml` / `tauri.conf.json` 四处同步，`Cargo.lock` 随构建更新），MSIX 补齐为 `0.2.0.0`
+- [x] 校验：`npm run build` 通过；`cargo test -- --test-threads=1` 全绿（363 项）
+- [x] 出未签名上架包：`scripts\build-msix.ps1 -Sign None -IdentityName CCB6DC78.PDFe -Publisher "CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F" -PublisherDisplayName "老袁不圆润"`
+      - 产物 `src-tauri\target\msix\PDFe_0.2.0_x64.msix`：**7,528,345 字节**，SHA256 `58B325296E0741301F34C9E79BF9BEE6CD6DF90A153E1A5ACB541AC8BBFB8D04`
+      - 自检 ② 条全过：`layout\pdfe.exe` 8,726,528 字节、字节内含 `assets/index-`（偏移 7468837，非 dev 坏包）✓；`Get-AuthenticodeSignature` = `NotSigned` ✓；`layout\AppxManifest.xml` 的 `Identity/@Name`=`CCB6DC78.PDFe`、`Identity/@Publisher`=`CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F`、`PublisherDisplayName`=`老袁不圆润`、`Version`=`0.2.0.0`，无残留占位符 ✓
+- [ ] Partner Center → 新建提交 → 上传上述 `PDFe_0.2.0_x64.msix`（若本地侧载自测覆写了同名文件，按上行命令重出未签名副本再传；切勿传签名后的同名文件）
+- [ ] `此版本中的新增功能` 两语言填 §3.4.1 文案（0.2.0 起填写）
+- [ ] `提交选项`（`runFullTrust` 说明）/ `隐私政策 URL` / `价格和可用性` 沿用上轮，逐页确认 Incomplete 清零 → 点 `提交认证`
+- [ ] 认证通过后回填：§0「已上架版本」改为 `0.2.0.0`，并补打 `v0.2.0` tag
