@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { useApp } from "../state/store";
 import { renderMarkdown, type TextDocKind } from "../lib/ipc";
 import { useT } from "../i18n";
@@ -8,6 +14,40 @@ const MAX_TEXT_LINES = 20000;
 
 /** markdown 编辑时实时预览的防抖间隔（毫秒）。 */
 const PREVIEW_DEBOUNCE_MS = 200;
+
+type MdToolId =
+  "bold" | "italic" | "code" | "heading" | "ul" | "ol" | "quote" | "link" | "codeblock";
+
+/** 格式化工具条按钮（label 为按钮文字，title 为本地化提示）。 */
+const MD_TOOLS: { id: MdToolId; label: string; title: string }[] = [
+  { id: "bold", label: "B", title: "加粗" },
+  { id: "italic", label: "I", title: "斜体" },
+  { id: "code", label: "‹›", title: "行内代码" },
+  { id: "heading", label: "H", title: "标题样式" },
+  { id: "ul", label: "•", title: "无序列表" },
+  { id: "ol", label: "1.", title: "有序列表" },
+  { id: "quote", label: "❝", title: "引用" },
+  { id: "link", label: "🔗", title: "链接" },
+  { id: "codeblock", label: "{ }", title: "代码块" },
+];
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** 收集 text 中 needle 的全部出现位置（按大小写敏感开关）。 */
+function findMatches(text: string, needle: string, matchCase: boolean): number[] {
+  if (!needle) return [];
+  const hay = matchCase ? text : text.toLowerCase();
+  const pat = matchCase ? needle : needle.toLowerCase();
+  const out: number[] = [];
+  let idx = hay.indexOf(pat);
+  while (idx !== -1) {
+    out.push(idx);
+    idx = hay.indexOf(pat, idx + pat.length);
+  }
+  return out;
+}
 
 const KIND_LABEL: Record<TextDocKind, string> = {
   markdown: "Markdown 文档",
@@ -46,6 +86,329 @@ img{max-width:100%;height:auto}
 hr{border:0;border-top:1px solid ${border}}
 .epub-section+.epub-section{margin-top:2em;padding-top:1em;border-top:1px dashed ${border}}
 </style></head><body>${body}</body></html>`;
+}
+
+/** markdown 源码编辑面板：格式化工具条 + 行号 + 查找/替换（含局部快捷键）。 */
+function MarkdownEditor({
+  value,
+  onChange,
+  onSave,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSave: () => void;
+}) {
+  const t = useT();
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const gutterRef = useRef<HTMLPreElement>(null);
+  // 受控 textarea 重渲染后需要恢复的选区
+  const pendingSel = useRef<[number, number] | null>(null);
+
+  const [findOpen, setFindOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [replacement, setReplacement] = useState("");
+  const [matchCase, setMatchCase] = useState(false);
+  const [activeMatch, setActiveMatch] = useState(0);
+
+  const lineCount = value.split("\n").length;
+  const gutter = useMemo(
+    () => Array.from({ length: lineCount }, (_, i) => i + 1).join("\n"),
+    [lineCount],
+  );
+
+  const matches = useMemo(() => findMatches(value, query, matchCase), [value, query, matchCase]);
+
+  // 恢复光标/选区（在受控值更新提交后执行）
+  useEffect(() => {
+    const sel = pendingSel.current;
+    const ta = taRef.current;
+    if (!sel || !ta) return;
+    pendingSel.current = null;
+    ta.focus();
+    ta.setSelectionRange(sel[0], sel[1]);
+  }, [value]);
+
+  useEffect(() => {
+    setActiveMatch(0);
+  }, [query, matchCase]);
+
+  function applyEdit(next: string, sel: [number, number]) {
+    pendingSel.current = sel;
+    onChange(next);
+  }
+
+  /** 用 prefix/suffix 包裹当前选区（无选区时插入一对标记并把光标放中间）。 */
+  function surround(prefix: string, suffix = prefix) {
+    const ta = taRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = value.slice(start, end);
+    const next = value.slice(0, start) + prefix + selected + suffix + value.slice(end);
+    applyEdit(next, [start + prefix.length, start + prefix.length + selected.length]);
+  }
+
+  /** 给选区覆盖的每一行加行首前缀。 */
+  function linePrefix(prefix: string) {
+    const ta = taRef.current;
+    if (!ta) return;
+    const start = value.lastIndexOf("\n", ta.selectionStart - 1) + 1;
+    const nl = value.indexOf("\n", ta.selectionEnd);
+    const end = nl === -1 ? value.length : nl;
+    const block = value
+      .slice(start, end)
+      .split("\n")
+      .map((line) => prefix + line)
+      .join("\n");
+    applyEdit(value.slice(0, start) + block + value.slice(end), [start, start + block.length]);
+  }
+
+  /** 标题级别循环：无 → H1 → H2 → H3 → 无。 */
+  function cycleHeading() {
+    const ta = taRef.current;
+    if (!ta) return;
+    const start = value.lastIndexOf("\n", ta.selectionStart - 1) + 1;
+    const nl = value.indexOf("\n", ta.selectionEnd);
+    const end = nl === -1 ? value.length : nl;
+    const block = value
+      .slice(start, end)
+      .split("\n")
+      .map((line) => {
+        const m = /^(#{1,3})\s+/.exec(line);
+        if (!m) return "# " + line;
+        const level = m[1].length;
+        return level >= 3
+          ? line.slice(m[0].length)
+          : "#".repeat(level + 1) + " " + line.slice(m[0].length);
+      })
+      .join("\n");
+    applyEdit(value.slice(0, start) + block + value.slice(end), [start, start + block.length]);
+  }
+
+  function runTool(id: MdToolId) {
+    switch (id) {
+      case "bold":
+        return surround("**");
+      case "italic":
+        return surround("*");
+      case "code":
+        return surround("`");
+      case "heading":
+        return cycleHeading();
+      case "ul":
+        return linePrefix("- ");
+      case "ol":
+        return linePrefix("1. ");
+      case "quote":
+        return linePrefix("> ");
+      case "link":
+        return surround("[", "](url)");
+      case "codeblock":
+        return surround("```\n", "\n```");
+    }
+  }
+
+  /** 选中并滚动到第 i 个匹配处。 */
+  function reveal(i: number) {
+    const ta = taRef.current;
+    const pos = matches[i];
+    if (!ta || pos === undefined) return;
+    ta.focus();
+    ta.setSelectionRange(pos, pos + query.length);
+    const lh = parseFloat(getComputedStyle(ta).lineHeight) || 20;
+    const line = value.slice(0, pos).split("\n").length - 1;
+    ta.scrollTop = Math.max(0, line * lh - ta.clientHeight / 2);
+    if (gutterRef.current) gutterRef.current.scrollTop = ta.scrollTop;
+  }
+
+  function gotoMatch(delta: number) {
+    if (!matches.length) return;
+    const next = (activeMatch + delta + matches.length) % matches.length;
+    setActiveMatch(next);
+    reveal(next);
+  }
+
+  function replaceCurrent() {
+    if (!matches.length) return;
+    const idx = Math.min(activeMatch, matches.length - 1);
+    const pos = matches[idx];
+    const next = value.slice(0, pos) + replacement + value.slice(pos + query.length);
+    const caret = pos + replacement.length;
+    pendingSel.current = [caret, caret];
+    onChange(next);
+    // 值更新后回到下一处匹配
+    window.setTimeout(() => {
+      const ta = taRef.current;
+      if (!ta) return;
+      const hits = findMatches(ta.value, query, matchCase);
+      if (!hits.length) {
+        setActiveMatch(0);
+        return;
+      }
+      const nIdx = Math.min(idx, hits.length - 1);
+      setActiveMatch(nIdx);
+      const p = hits[nIdx];
+      ta.focus();
+      ta.setSelectionRange(p, p + query.length);
+      const lh = parseFloat(getComputedStyle(ta).lineHeight) || 20;
+      const line = ta.value.slice(0, p).split("\n").length - 1;
+      ta.scrollTop = Math.max(0, line * lh - ta.clientHeight / 2);
+      if (gutterRef.current) gutterRef.current.scrollTop = ta.scrollTop;
+    }, 0);
+  }
+
+  function replaceAll() {
+    if (!matches.length) return;
+    const re = new RegExp(escapeRegExp(query), matchCase ? "g" : "gi");
+    onChange(value.replace(re, () => replacement));
+    setActiveMatch(0);
+  }
+
+  function onKeyDown(e: ReactKeyboardEvent<HTMLTextAreaElement>) {
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && e.key.toLowerCase() === "f") {
+      e.preventDefault();
+      setFindOpen(true);
+      return;
+    }
+    if (mod && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      onSave();
+      return;
+    }
+    if (e.key === "Escape" && findOpen) {
+      e.preventDefault();
+      setFindOpen(false);
+    }
+  }
+
+  function onScroll() {
+    if (taRef.current && gutterRef.current) {
+      gutterRef.current.scrollTop = taRef.current.scrollTop;
+    }
+  }
+
+  return (
+    <div className="reader-md-pane">
+      <div className="reader-md-toolbar">
+        {MD_TOOLS.map((tool) => (
+          <button
+            key={tool.id}
+            type="button"
+            className="tbtn md-tool"
+            title={t(tool.title)}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => runTool(tool.id)}
+          >
+            {tool.label}
+          </button>
+        ))}
+        <span style={{ flex: 1 }} />
+        <button
+          type="button"
+          className="tbtn"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setFindOpen((v) => !v)}
+        >
+          {t("查找")}
+        </button>
+      </div>
+      {findOpen && (
+        <div className="reader-md-find">
+          <input
+            className="md-find-input"
+            value={query}
+            placeholder={t("查找")}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                gotoMatch(e.shiftKey ? -1 : 1);
+              } else if (e.key === "Escape") {
+                setFindOpen(false);
+              }
+            }}
+          />
+          <span className="reader-md-count">
+            {query ? (matches.length ? `${activeMatch + 1}/${matches.length}` : t("未找到")) : ""}
+          </span>
+          <button
+            type="button"
+            className="tbtn"
+            title={t("上一个匹配")}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => gotoMatch(-1)}
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            className="tbtn"
+            title={t("下一个匹配")}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => gotoMatch(1)}
+          >
+            ↓
+          </button>
+          <input
+            className="md-find-input"
+            value={replacement}
+            placeholder={t("替换")}
+            onChange={(e) => setReplacement(e.target.value)}
+          />
+          <button
+            type="button"
+            className="tbtn"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={replaceCurrent}
+          >
+            {t("替换")}
+          </button>
+          <button
+            type="button"
+            className="tbtn"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={replaceAll}
+          >
+            {t("替换全部")}
+          </button>
+          <label className="md-find-case">
+            <input
+              type="checkbox"
+              checked={matchCase}
+              onChange={(e) => setMatchCase(e.target.checked)}
+            />
+            {t("区分大小写")}
+          </label>
+          <span style={{ flex: 1 }} />
+          <button
+            type="button"
+            className="tbtn"
+            title={t("关闭")}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setFindOpen(false)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      <div className="reader-md-code">
+        <pre className="reader-md-gutter" ref={gutterRef} aria-hidden="true">
+          {gutter}
+        </pre>
+        <textarea
+          ref={taRef}
+          className="reader-md-source"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          onScroll={onScroll}
+          spellCheck={false}
+          wrap="off"
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function Reader({ onSave }: { onSave: () => void }) {
@@ -127,12 +490,7 @@ export default function Reader({ onSave }: { onSave: () => void }) {
         </div>
       ) : canEditMd && mdEditing ? (
         <div className="reader-md-edit">
-          <textarea
-            className="reader-md-source"
-            value={mdDraft ?? ""}
-            onChange={(e) => setMdDraft(e.target.value)}
-            spellCheck={false}
-          />
+          <MarkdownEditor value={mdDraft ?? ""} onChange={setMdDraft} onSave={onSave} />
           <iframe
             className="reader-frame"
             title={textDoc.fileName}

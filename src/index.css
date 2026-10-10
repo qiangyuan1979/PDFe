@@ -1164,13 +1164,86 @@ input[type="color"] {
   display: flex;
   min-height: 0;
 }
+.reader-md-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+.reader-md-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+.md-tool {
+  min-width: 28px;
+  justify-content: center;
+  padding: 3px 6px;
+  font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
+}
+.reader-md-find {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--fg-dim);
+  overflow: hidden;
+}
+.md-find-input {
+  flex: 0 1 140px;
+  min-width: 70px;
+  padding: 3px 6px;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+}
+.reader-md-count {
+  flex: none;
+  min-width: 44px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.md-find-case {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.reader-md-code {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.reader-md-gutter {
+  margin: 0;
+  flex: none;
+  overflow: hidden;
+  min-width: 3em;
+  padding: 16px 8px;
+  text-align: right;
+  color: var(--fg-dim);
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  user-select: none;
+}
 .reader-md-source {
   flex: 1;
   min-width: 0;
   margin: 0;
   padding: 16px;
   border: 0;
-  border-right: 1px solid var(--border);
   resize: none;
   outline: none;
   background: var(--bg-panel);
@@ -1179,6 +1252,7 @@ input[type="color"] {
   font-size: 13px;
   line-height: 1.6;
   tab-size: 4;
+  white-space: pre;
 }
 .reader-dirty {
   color: var(--accent);
