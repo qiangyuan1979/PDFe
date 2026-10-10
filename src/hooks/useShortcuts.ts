@@ -157,6 +157,7 @@ export function useShortcuts(h: ShortcutHandlers): void {
       if (e.key === "Escape") {
         st.setSearchOpen(false);
         st.setHelpOpen(false);
+        st.setAboutOpen(false);
         st.closeTask();
         return;
       }

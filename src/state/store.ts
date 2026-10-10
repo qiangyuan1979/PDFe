@@ -160,6 +160,7 @@ interface AppState {
   editMode: DeepEditMode;
   searchOpen: boolean;
   helpOpen: boolean;
+  aboutOpen: boolean;
 
   // 搜索
   searchQuery: string;
@@ -234,6 +235,7 @@ interface AppState {
   setEditMode: (m: DeepEditMode) => void;
   setSearchOpen: (b: boolean) => void;
   setHelpOpen: (b: boolean) => void;
+  setAboutOpen: (b: boolean) => void;
   setSelectingFor: (mode: string | null) => void;
   setLiveSelection: (rect: (CssRect & { pageIndex: number }) | null) => void;
   setCompletedSelection: (s: (Omit<CompletedSelection, "mode"> & { mode?: string }) | null) => void;
@@ -350,6 +352,7 @@ export const useApp = create<AppState>((set, get) => ({
   watermarkCustomPos: null,
   searchOpen: false,
   helpOpen: false,
+  aboutOpen: false,
 
   searchQuery: "",
   searchHits: [],
@@ -522,6 +525,7 @@ export const useApp = create<AppState>((set, get) => ({
     }),
   setSearchOpen: (b) => set({ searchOpen: b }),
   setHelpOpen: (b) => set({ helpOpen: b }),
+  setAboutOpen: (b) => set({ aboutOpen: b }),
   setSelectingFor: (mode) =>
     set({
       selectingFor: mode,

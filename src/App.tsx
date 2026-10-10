@@ -26,6 +26,7 @@ import SearchPanel from "./components/SearchPanel";
 import TaskPanel from "./components/TaskPanel";
 import StatusBar from "./components/StatusBar";
 import HelpPanel from "./components/HelpPanel";
+import AboutDialog from "./components/AboutDialog";
 import { useT, translateError } from "./i18n";
 import { useShortcuts } from "./hooks/useShortcuts";
 import "./index.css";
@@ -442,6 +443,7 @@ export default function App() {
       <StatusBar />
       {pwdPath && <PasswordDialog path={pwdPath} onDone={() => setPwdPath(null)} />}
       <HelpPanel />
+      <AboutDialog />
       <div className="toasts">
         {toasts.map((t) => (
           <div key={t.id} className={`toast ${t.kind}`} onClick={() => dismissToast(t.id)}>

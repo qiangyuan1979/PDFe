@@ -47,7 +47,7 @@ const SHORTCUT_KEYS = [
   },
 ];
 
-const FEATURE_KEYS = [
+export const FEATURE_KEYS = [
   {
     groupKey: "文档核心",
     items: [

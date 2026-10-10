@@ -37,6 +37,7 @@ export default function Toolbar({
   const setSearchOpen = useApp((s) => s.setSearchOpen);
   const searchOpen = useApp((s) => s.searchOpen);
   const setHelpOpen = useApp((s) => s.setHelpOpen);
+  const setAboutOpen = useApp((s) => s.setAboutOpen);
   const locale = useApp((s) => s.locale);
   const setLocale = useApp((s) => s.setLocale);
   const version = useAppVersion();
@@ -117,6 +118,9 @@ export default function Toolbar({
       </button>
       <button className="tbtn" onClick={() => setHelpOpen(true)} title={t("帮助（? 或 F1）")}>
         ?
+      </button>
+      <button className="tbtn" onClick={() => setAboutOpen(true)} title={t("关于 PDFe")}>
+        ℹ
       </button>
       {version && (
         <span className="appver" title={t("应用版本")}>

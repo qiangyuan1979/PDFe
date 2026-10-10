@@ -455,6 +455,21 @@ const en: Record<string, string> = {
   "EPUB / MOBI / AZW3 / FB2 / HTML / RTF → PDF（依赖 Calibre）":
     "EPUB / MOBI / AZW3 / FB2 / HTML / RTF → PDF (requires Calibre)",
   "PDF → Office / 电子书不在范围": "PDF → Office / ebook is out of scope",
+  // ---------- AboutDialog ----------
+  "关于 PDFe": "About PDFe",
+  "本地 PDF 阅读与编辑工具": "Local PDF reader & editor",
+  "完全在你的本机运行，专注于 PDF 阅读、页面管理、水印、注释、文档安全与格式互转，不包含联网功能。":
+    "Runs entirely on your own device, focused on PDF reading, page management, watermarking, annotations, document security, and format conversion — with no networking features.",
+  版本信息: "Version info",
+  版本号: "Version",
+  更新方式: "Update channel",
+  "通过 Microsoft Store 分发": "Distributed via Microsoft Store",
+  在线升级: "Online update",
+  "应用更新通过 Microsoft Store 自动分发。点击下方按钮打开商店页面，即可获取并安装最新版本。":
+    "App updates are delivered automatically through the Microsoft Store. Click the button below to open the store page and get the latest version.",
+  检查更新: "Check for updates",
+  "打开商店页面失败，请手动访问 Microsoft Store。":
+    "Failed to open the store page. Please visit the Microsoft Store manually.",
   // ---------- 隐私声明 ----------
   隐私声明: "Privacy Statement",
   "PDFe 完全在你的本机运行，不包含联网功能，不收集、不上传、不共享你的个人信息或文档内容。":
@@ -1044,6 +1059,21 @@ const ja: Record<string, string> = {
   "EPUB / MOBI / AZW3 / FB2 / HTML / RTF → PDF（依赖 Calibre）":
     "EPUB/MOBI/AZW3/FB2/HTML/RTF → PDF（要Calibre）",
   "PDF → Office / 电子书不在范围": "PDF→Office / 電子書籍は対象外",
+  // ---------- AboutDialog ----------
+  "关于 PDFe": "PDFe について",
+  "本地 PDF 阅读与编辑工具": "ローカル PDF 閲覧・編集ツール",
+  "完全在你的本机运行，专注于 PDF 阅读、页面管理、水印、注释、文档安全与格式互转，不包含联网功能。":
+    "完全にお使いの端末上で動作し、PDFの閲覧・ページ管理・ウォーターマーク・注釈・文書セキュリティ・フォーマット変換に特化しています。ネットワーク機能は含みません。",
+  版本信息: "バージョン情報",
+  版本号: "バージョン番号",
+  更新方式: "更新方法",
+  "通过 Microsoft Store 分发": "Microsoft Store で配布",
+  在线升级: "オンラインアップデート",
+  "应用更新通过 Microsoft Store 自动分发。点击下方按钮打开商店页面，即可获取并安装最新版本。":
+    "アプリの更新は Microsoft Store を通じて自動配布されます。下のボタンをクリックしてストアページを開き、最新版を入手してください。",
+  检查更新: "更新を確認",
+  "打开商店页面失败，请手动访问 Microsoft Store。":
+    "ストアページを開けませんでした。Microsoft Store に手動でアクセスしてください。",
   // ---------- プライバシー声明 ----------
   隐私声明: "プライバシー声明",
   "PDFe 完全在你的本机运行，不包含联网功能，不收集、不上传、不共享你的个人信息或文档内容。":
