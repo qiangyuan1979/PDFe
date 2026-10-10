@@ -1,7 +1,7 @@
 # PDFe · Microsoft Store 上架素材
 
 本文记录**规格清单 + 截图脚本 + 商店文案**，以及 Partner Center 侧的提交进度。
-**已提交认证并已通过**（上传未签名包 `PDFe_0.1.0_x64.unsigned.msix`，版本 `0.1.0.0`，2026-10-04 用户确认 Store 认证通过，可从 Microsoft Store 安装）；提交后包二进制不得再改动。
+**0.1.0 与 0.2.0 均已提交认证并已通过**：`0.1.0`（未签名包 `PDFe_0.1.0_x64.unsigned.msix`，2026-10-04 用户确认认证通过）；`0.2.0`（`PDFe_0.2.0_x64.msix`，2026-10-06 认证通过并发布，见 §5.2）。两者均可从 Microsoft Store 安装；提交后包二进制不得再改动。
 逐项状态见 §5 / §5.1，与 [实施计划](superpowers/plans/2026-09-18-implementation-plan.md) M7 节对应。
 
 ## 0. 事实基线
@@ -11,7 +11,7 @@
 | 项 | 值 |
 |----|----|
 | 产品名 | PDFe（`productName` = `pdfe`，窗口标题 `PDFe`） |
-| 版本 | 开发中 `0.2.0`（`tauri.conf.json` / `Cargo.toml` / `package.json` 三处同步，MSIX 补齐为 `0.2.0.0`）；**已上架版本 `0.1.0.0`** |
+| 版本 | 当前 `0.2.0`（`tauri.conf.json` / `Cargo.toml` / `package.json` 三处同步，MSIX 补齐为 `0.2.0.0`）；**已上架版本 `0.2.0.0`**（2026-10-06 认证通过并发布） |
 | 标识 | `com.konnyyuan.pdfe` |
 | MSIX Identity | 清单为占位符 `__IDENTITY_NAME__` / `__PUBLISHER__` / `__PUBLISHER_DISPLAY_NAME__`；本地侧载默认注入 `konnyyuan.pdfe` / `CN=PDFe Local Test` / `PDFe`，上架注入 Partner Center 分配值 `CCB6DC78.PDFe` / `CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F` / `老袁不圆润`（见 §4） |
 | 包系列名 PFN | `CCB6DC78.PDFe_hmyrrnnxy08dw`（本机从 Store 安装实测包全名 `CCB6DC78.PDFe_0.1.0.0_x64__hmyrrnnxy08dw`；本地侧载测试的旧包系列为 `konnyyuan.pdfe_6cgrzvqajzfpg`，两者互不影响、可并存） |
@@ -530,7 +530,7 @@ System requirements: Windows 10 version 1809 or later (x64).
 - [x] ⑦ `价格和可用性` / `属性` / `年龄分级` 按 §4 决策填写
 - [x] ⑧ 所有页面 Incomplete 清零后点 **`提交认证`**；**提交后包二进制不得再改动**（已提交认证并**已通过**：0.1.0.0 已上架，可从 Microsoft Store 安装）
 
-### 5.2 0.2.0 更新包提交清单（进行中）
+### 5.2 0.2.0 更新包提交清单（已完成，已上架）
 
 > 0.1.0 已通过认证并上架，Store 允许在通过后新建提交。更新硬约束：必须**提升版本号**（`0.2.0 > 0.1.0`），且**同时只允许一个在认证中的提交**。
 
@@ -539,7 +539,11 @@ System requirements: Windows 10 version 1809 or later (x64).
 - [x] 出未签名上架包：`scripts\build-msix.ps1 -Sign None -IdentityName CCB6DC78.PDFe -Publisher "CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F" -PublisherDisplayName "老袁不圆润"`
       - 产物 `src-tauri\target\msix\PDFe_0.2.0_x64.msix`：**7,528,345 字节**，SHA256 `58B325296E0741301F34C9E79BF9BEE6CD6DF90A153E1A5ACB541AC8BBFB8D04`
       - 自检 ② 条全过：`layout\pdfe.exe` 8,726,528 字节、字节内含 `assets/index-`（偏移 7468837，非 dev 坏包）✓；`Get-AuthenticodeSignature` = `NotSigned` ✓；`layout\AppxManifest.xml` 的 `Identity/@Name`=`CCB6DC78.PDFe`、`Identity/@Publisher`=`CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F`、`PublisherDisplayName`=`老袁不圆润`、`Version`=`0.2.0.0`，无残留占位符 ✓
-- [ ] Partner Center → 新建提交 → 上传上述 `PDFe_0.2.0_x64.msix`（若本地侧载自测覆写了同名文件，按上行命令重出未签名副本再传；切勿传签名后的同名文件）
-- [ ] `此版本中的新增功能` 两语言填 §3.4.1 文案（0.2.0 起填写）
-- [ ] `提交选项`（`runFullTrust` 说明）/ `隐私政策 URL` / `价格和可用性` 沿用上轮，逐页确认 Incomplete 清零 → 点 `提交认证`
-- [ ] 认证通过后回填：§0「已上架版本」改为 `0.2.0.0`，并补打 `v0.2.0` tag
+- [x] Partner Center → 新建提交（`Submission 5`）→ 上传上述 `PDFe_0.2.0_x64.msix`（若本地侧载自测覆写了同名文件，按上行命令重出未签名副本再传；切勿传签名后的同名文件）
+- [x] `此版本中的新增功能` 两语言填 §3.4.1 文案（0.2.0 起填写）
+- [x] `提交选项`（`runFullTrust` 说明，实测已含 v0.2.0 更新内容文案）/ `隐私政策 URL` / `价格和可用性` 沿用上轮，逐页确认 Incomplete 清零 → 点 `提交认证`
+- [x] 认证通过并发布：`Submission 5` `published=true` / `inTheStore=true` / `Submission_Status_In_Store`，认证报告 `PassedWithNotes` @2026-10-06
+- [x] 回填 §0「已上架版本」为 `0.2.0.0`
+- [ ] 补打 `v0.2.0` tag
+
+> **2026-10-10 复核**：Partner Center submissions API 实测仅剩 `Submission 5`（releaseNumber 5，线上包 `PDFe_0.2.0_x64.msix` v0.2.0.0）。10/10 因上下文误判误建的草稿 `Submission 6`（同为 v0.2.0.0）已删除，**未做重复提交**（Store 硬约束：更新必须提升版本号，同版本会被拒）。

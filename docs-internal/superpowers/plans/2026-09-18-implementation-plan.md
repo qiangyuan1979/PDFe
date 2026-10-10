@@ -129,4 +129,4 @@
 
 > 注：tag 指向的提交在时间线上并非严格递增——M6 的收尾提交（`6a5eaad`）早于 M5 收尾提交（`31fe8c8`），因两个里程碑的工作交替进行。
 > M7（打磨与上架）Store 认证**已通过**（版本 `0.1.0.0` 已上架，可从 Microsoft Store 安装）；`v0.1.0-m7` tag 待补打。
-> **0.2.0（进行中）**：在 0.1.0 基础上合入原生阅读模式（markdown / HTML / EPUB / 纯文本与源代码）与界面版本号显示；版本号已升至 `0.2.0`（MSIX 为 `0.2.0.0`），未签名上架包已出（`PDFe_0.2.0_x64.msix`，校验与自检全过），待提交 Store 更新（Store 要求新版本号高于已上架版本），提交清单见 [store-listing-materials.md](../store-listing-materials.md) §5.2。
+> **0.2.0（已上架）**：在 0.1.0 基础上合入原生阅读模式（markdown / HTML / EPUB / 纯文本与源代码）与界面版本号显示；版本号 `0.2.0`（MSIX 为 `0.2.0.0`），未签名上架包 `PDFe_0.2.0_x64.msix`（校验与自检全过）已提交 Store 更新，**2026-10-06 认证通过并发布**（Store 当前版本 `0.2.0.0`）；`v0.2.0` tag 待补打。提交清单见 [store-listing-materials.md](../store-listing-materials.md) §5.2。
