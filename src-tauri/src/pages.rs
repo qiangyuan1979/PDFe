@@ -242,6 +242,165 @@ pub async fn insert_blank_page(
     commit_and_return(&state, doc_id, new_bytes)
 }
 
+/// 模板页类型。前端以 "blank" / "lined" / "grid" / "dotted" 传入。
+#[derive(Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum PageTemplate {
+    /// 纯空白页。
+    Blank,
+    /// 横线（笔记本）。
+    Lined,
+    /// 方格（坐标纸）。
+    Grid,
+    /// 点阵。
+    Dotted,
+}
+
+/// 模板页上要绘制的一条线段（PDF 点坐标，原点在左下角）。
+pub(crate) struct TemplateLine {
+    pub x1: f32,
+    pub y1: f32,
+    pub x2: f32,
+    pub y2: f32,
+}
+
+/// 模板页几何：线段集合 + 圆点圆心集合。纯数据，便于单测。
+pub(crate) struct TemplateGeometry {
+    pub lines: Vec<TemplateLine>,
+    pub dots: Vec<(f32, f32)>,
+}
+
+/// 页面四周留白（PDF 点，约 0.5 英寸）。
+const TEMPLATE_MARGIN: f32 = 36.0;
+/// 行距 / 格距（PDF 点，约 1/3 英寸）。
+const TEMPLATE_SPACING: f32 = 24.0;
+/// 点阵圆点半径（PDF 点）。
+const TEMPLATE_DOT_RADIUS: f32 = 0.8;
+
+/// 计算模板页的绘制几何。纯函数，不接触 PDFium，可直接单测。
+pub(crate) fn template_geometry(
+    width: f32,
+    height: f32,
+    template: PageTemplate,
+) -> TemplateGeometry {
+    let left = TEMPLATE_MARGIN;
+    let right = (width - TEMPLATE_MARGIN).max(left);
+    let bottom = TEMPLATE_MARGIN;
+    let top = (height - TEMPLATE_MARGIN).max(bottom);
+
+    let mut lines = Vec::new();
+    let mut dots = Vec::new();
+    match template {
+        PageTemplate::Blank => {}
+        PageTemplate::Lined => {
+            let mut y = top;
+            while y >= bottom {
+                lines.push(TemplateLine {
+                    x1: left,
+                    y1: y,
+                    x2: right,
+                    y2: y,
+                });
+                y -= TEMPLATE_SPACING;
+            }
+        }
+        PageTemplate::Grid => {
+            let mut y = top;
+            while y >= bottom {
+                lines.push(TemplateLine {
+                    x1: left,
+                    y1: y,
+                    x2: right,
+                    y2: y,
+                });
+                y -= TEMPLATE_SPACING;
+            }
+            let mut x = left;
+            while x <= right {
+                lines.push(TemplateLine {
+                    x1: x,
+                    y1: bottom,
+                    x2: x,
+                    y2: top,
+                });
+                x += TEMPLATE_SPACING;
+            }
+        }
+        PageTemplate::Dotted => {
+            let mut y = top;
+            while y >= bottom {
+                let mut x = left;
+                while x <= right {
+                    dots.push((x, y));
+                    x += TEMPLATE_SPACING;
+                }
+                y -= TEMPLATE_SPACING;
+            }
+        }
+    }
+    TemplateGeometry { lines, dots }
+}
+
+/// 在指定位置插入一张带模板的页面（空白 / 横线 / 网格 / 点阵）。
+#[tauri::command]
+pub async fn insert_template_page(
+    state: State<'_, AppState>,
+    doc_id: u64,
+    at_index: u32,
+    width: f64,
+    height: f64,
+    template: PageTemplate,
+) -> AppResult<DocumentInfo> {
+    push_snapshot(&state, doc_id);
+    let _gate = crate::document::pdfium_gate();
+    let pdfium = get_pdfium();
+    let new_bytes = {
+        let docs = state.docs.lock().unwrap();
+        let entry = docs.get(&doc_id).ok_or(AppError::NotFound)?;
+        let mut doc = load_doc(pdfium, &entry.bytes)?;
+        let total = doc.pages().len() as u32;
+        if at_index > total {
+            return Err(AppError::PageOutOfRange);
+        }
+        let w = width.max(1.0) as f32;
+        let h = height.max(1.0) as f32;
+        let size = PdfPagePaperSize::from_points(PdfPoints::new(w), PdfPoints::new(h));
+        let idx = to_u16(at_index)?;
+        doc.pages_mut().create_page_at_index(size, idx)?;
+        let geo = template_geometry(w, h, template);
+        if !geo.lines.is_empty() || !geo.dots.is_empty() {
+            let stroke = PdfColor::new(196, 205, 216, 255);
+            let stroke_width = PdfPoints::new(0.5);
+            let dot_color = PdfColor::new(150, 162, 178, 255);
+            let pages = doc.pages_mut();
+            let mut page = pages.get(idx)?;
+            let objects = page.objects_mut();
+            for l in &geo.lines {
+                objects.create_path_object_line(
+                    PdfPoints::new(l.x1),
+                    PdfPoints::new(l.y1),
+                    PdfPoints::new(l.x2),
+                    PdfPoints::new(l.y2),
+                    stroke,
+                    stroke_width,
+                )?;
+            }
+            for (x, y) in &geo.dots {
+                objects.create_path_object_circle_at(
+                    PdfPoints::new(*x),
+                    PdfPoints::new(*y),
+                    PdfPoints::new(TEMPLATE_DOT_RADIUS),
+                    None,
+                    None,
+                    Some(dot_color),
+                )?;
+            }
+        }
+        doc.save_to_bytes()?
+    };
+    commit_and_return(&state, doc_id, new_bytes)
+}
+
 #[tauri::command]
 pub async fn reorder_pages(
     state: State<'_, AppState>,
@@ -822,5 +981,51 @@ mod tests {
         assert!(selected_page_count(Some("11"), 10).is_err());
         assert!(selected_page_count(Some("0"), 10).is_err());
         assert!(selected_page_count(Some("5-3"), 10).is_err());
+    }
+
+    /// template_geometry: blank page has nothing to draw
+    #[test]
+    fn template_geometry_blank_is_empty() {
+        let g = template_geometry(595.0, 842.0, PageTemplate::Blank);
+        assert!(g.lines.is_empty());
+        assert!(g.dots.is_empty());
+    }
+
+    /// template_geometry: lined page only draws horizontal lines within margins
+    #[test]
+    fn template_geometry_lined_horizontal_only() {
+        let g = template_geometry(595.0, 842.0, PageTemplate::Lined);
+        assert!(g.dots.is_empty());
+        assert!(!g.lines.is_empty());
+        for l in &g.lines {
+            assert_eq!(l.y1, l.y2, "lined templates must be horizontal");
+            assert_eq!(l.x1, TEMPLATE_MARGIN);
+            assert_eq!(l.x2, 595.0 - TEMPLATE_MARGIN);
+            assert!(l.y1 <= 842.0 - TEMPLATE_MARGIN);
+            assert!(l.y1 >= TEMPLATE_MARGIN);
+        }
+    }
+
+    /// template_geometry: grid adds vertical lines on top of horizontal ones
+    #[test]
+    fn template_geometry_grid_adds_verticals() {
+        let lined = template_geometry(595.0, 842.0, PageTemplate::Lined);
+        let grid = template_geometry(595.0, 842.0, PageTemplate::Grid);
+        assert!(grid.dots.is_empty());
+        assert!(grid.lines.len() > lined.lines.len());
+        let verticals = grid.lines.iter().filter(|l| l.x1 == l.x2).count();
+        assert!(verticals > 0, "grid must contain vertical lines");
+    }
+
+    /// template_geometry: dotted page draws points instead of lines
+    #[test]
+    fn template_geometry_dotted_points_only() {
+        let g = template_geometry(595.0, 842.0, PageTemplate::Dotted);
+        assert!(g.lines.is_empty());
+        assert!(!g.dots.is_empty());
+        for (x, y) in &g.dots {
+            assert!((TEMPLATE_MARGIN..=595.0 - TEMPLATE_MARGIN).contains(x));
+            assert!((TEMPLATE_MARGIN..=842.0 - TEMPLATE_MARGIN).contains(y));
+        }
     }
 }

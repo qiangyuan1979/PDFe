@@ -198,6 +198,24 @@ export function insertBlankPage(
   return invoke<DocumentInfo>("insert_blank_page", { docId, atIndex, width, height });
 }
 
+export type PageTemplate = "blank" | "lined" | "grid" | "dotted";
+
+export function insertTemplatePage(
+  docId: number,
+  atIndex: number,
+  width: number,
+  height: number,
+  template: PageTemplate,
+): Promise<DocumentInfo> {
+  return invoke<DocumentInfo>("insert_template_page", {
+    docId,
+    atIndex,
+    width,
+    height,
+    template,
+  });
+}
+
 export function reorderPages(
   docId: number,
   fromIndices: number[],

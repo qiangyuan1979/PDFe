@@ -218,9 +218,7 @@ fn parent_dir(p: &str) -> String {
 }
 
 fn join_path(base_dir: &str, rel: &str) -> String {
-    if rel.starts_with('/') {
-        normalize_path(rel)
-    } else if base_dir.is_empty() {
+    if rel.starts_with('/') || base_dir.is_empty() {
         normalize_path(rel)
     } else {
         normalize_path(&format!("{}/{}", base_dir, rel))

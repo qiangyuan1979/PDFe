@@ -45,6 +45,7 @@ pub fn run() {
             pages::delete_pages,
             pages::duplicate_pages,
             pages::insert_blank_page,
+            pages::insert_template_page,
             pages::reorder_pages,
             pages::extract_pages,
             pages::merge_documents,

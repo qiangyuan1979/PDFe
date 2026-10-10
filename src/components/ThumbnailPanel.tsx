@@ -8,6 +8,8 @@ import {
   deletePages,
   duplicatePages,
   insertBlankPage,
+  insertTemplatePage,
+  type PageTemplate,
   reorderPages,
   extractPages,
   closeDocument,
@@ -22,6 +24,44 @@ interface ContextMenuState {
   x: number;
   y: number;
   pageIndex: number;
+}
+
+// 模板页选项；label 为中文原文（i18n 以此为 key）。
+const TEMPLATE_OPTIONS: { id: PageTemplate; label: string }[] = [
+  { id: "blank", label: "空白" },
+  { id: "lined", label: "横线" },
+  { id: "grid", label: "网格" },
+  { id: "dotted", label: "点阵" },
+];
+
+function PageTemplateDialog({
+  onPick,
+  onClose,
+}: {
+  onPick: (template: PageTemplate) => void;
+  onClose: () => void;
+}) {
+  const t = useT();
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="tpl-dialog" onClick={(e) => e.stopPropagation()}>
+        <div className="tpl-dialog-head">
+          <h3>{t("插入模板页")}</h3>
+          <button className="tpl-close" onClick={onClose} title={t("关闭")}>
+            ✕
+          </button>
+        </div>
+        <div className="tpl-options">
+          {TEMPLATE_OPTIONS.map((opt) => (
+            <button key={opt.id} className="tpl-opt" onClick={() => onPick(opt.id)}>
+              <span className={`tpl-prev tpl-prev-${opt.id}`} aria-hidden />
+              <span className="tpl-opt-label">{t(opt.label)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // 缩略图 in-flight 去重：同一 key 同时只发一次请求
@@ -135,6 +175,7 @@ export default function ThumbnailPanel() {
   const [scrollTop, setScrollTop] = useState(0);
   const [viewH, setViewH] = useState(0);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [templateDialog, setTemplateDialog] = useState<{ pageIndex: number } | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [dropPosition, setDropPosition] = useState<"before" | "after" | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -240,6 +281,30 @@ export default function ThumbnailPanel() {
       markDirty(true);
       setUndoRedo(await refreshUndoRedo(docId));
       pushToast("info", t("已插入空白页"));
+    } catch (e) {
+      errorToast(e);
+    }
+  };
+
+  const openTemplateDialog = () => {
+    if (!contextMenu) return;
+    setTemplateDialog({ pageIndex: contextMenu.pageIndex });
+    setContextMenu(null);
+  };
+
+  const handleInsertTemplate = async (template: PageTemplate) => {
+    if (docId === null || !templateDialog) return;
+    const atIndex = templateDialog.pageIndex;
+    const refPage = pages[atIndex] || pages[0];
+    const width = refPage?.width || 595;
+    const height = refPage?.height || 842;
+    setTemplateDialog(null);
+    try {
+      const info = await insertTemplatePage(docId, atIndex, width, height, template);
+      updatePages(info);
+      markDirty(true);
+      setUndoRedo(await refreshUndoRedo(docId));
+      pushToast("info", t("已插入模板页"));
     } catch (e) {
       errorToast(e);
     }
@@ -429,12 +494,16 @@ export default function ThumbnailPanel() {
           <div className="ctx-sep" />
           <button onClick={handleDuplicate}>{t("📋 复制页面")}</button>
           <button onClick={handleInsertBlank}>{t("➕ 插入空白页")}</button>
+          <button onClick={openTemplateDialog}>{t("📄 插入模板页…")}</button>
           <button onClick={handleDelete} style={{ color: "var(--danger)" }}>
             {t("🗑 删除页面")}
           </button>
           <div className="ctx-sep" />
           <button onClick={handleExtract}>{t("📤 提取为新文档")}</button>
         </div>
+      )}
+      {templateDialog && (
+        <PageTemplateDialog onPick={handleInsertTemplate} onClose={() => setTemplateDialog(null)} />
       )}
     </div>
   );
