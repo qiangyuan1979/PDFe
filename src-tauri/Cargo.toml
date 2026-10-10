@@ -1,6 +1,6 @@
 [package]
 name = "pdfe"
-version = "0.1.0"
+version = "0.2.0"
 description = "PDFe - 现代化 Windows PDF 编辑器"
 authors = ["konny_yuan"]
 edition = "2021"
