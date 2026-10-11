@@ -674,6 +674,33 @@ const en: Record<string, string> = {
   基本不变: "Unchanged",
   "压缩中…": "Compressing…",
   "压缩另存为…": "Compress and Save As…",
+
+  // ---------- 批量处理（v2） ----------
+  批量: "Batch",
+  批量处理: "Batch Processing",
+  "把多个 PDF 文件排成队列依次处理：可选压缩、加密或导出明文副本，统一输出到指定文件夹，支持失败重试。":
+    "Queue multiple PDF files for sequential processing: compress, encrypt, or export plain copies into a chosen folder, with retry for failures.",
+  操作类型: "Operation",
+  加密: "Encrypt",
+  输出文件夹: "Output folder",
+  选择输出文件夹: "Choose output folder",
+  开始处理: "Start",
+  待处理: "Pending",
+  "进行中…": "In progress…",
+  已完成: "Done",
+  失败: "Failed",
+  "已处理 {done}/{total}": "Processed {done}/{total}",
+  清除列表: "Clear list",
+  重试失败项: "Retry failures",
+  请先添加文件并选择输出文件夹: "Add files and choose an output folder first",
+  "点击上方按钮添加 PDF 文件，或把文件拖到这里":
+    "Click the button above to add PDF files, or drop them here",
+  "批次完成：成功 {ok}，失败 {fail}": "Batch finished: {ok} succeeded, {fail} failed",
+  已取消: "Cancelled",
+  "允许打印（含高质量打印）": "Allow printing (including high-quality)",
+  "允许复制文本与图形": "Allow copying text and graphics",
+  "允许修改文档内容": "Allow modifying document content",
+  "允许添加或修改注释": "Allow adding or modifying annotations",
 };
 
 const ja: Record<string, string> = {
@@ -1347,6 +1374,33 @@ const ja: Record<string, string> = {
   基本不变: "ほぼ変化なし",
   "压缩中…": "圧縮中…",
   "压缩另存为…": "圧縮して名前を付けて保存…",
+
+  // ---------- バッチ処理（v2） ----------
+  批量: "バッチ",
+  批量处理: "バッチ処理",
+  "把多个 PDF 文件排成队列依次处理：可选压缩、加密或导出明文副本，统一输出到指定文件夹，支持失败重试。":
+    "複数の PDF をキューに並べて順番に処理します。圧縮・暗号化・平文コピーの書き出しを選べ、指定フォルダへ一括出力し、失敗時の再試行にも対応します。",
+  操作类型: "操作の種類",
+  加密: "暗号化",
+  输出文件夹: "出力フォルダ",
+  选择输出文件夹: "出力フォルダを選択",
+  开始处理: "処理を開始",
+  待处理: "待機中",
+  "进行中…": "処理中…",
+  已完成: "完了",
+  失败: "失敗",
+  "已处理 {done}/{total}": "処理済み {done}/{total}",
+  清除列表: "リストをクリア",
+  重试失败项: "失敗項目を再試行",
+  请先添加文件并选择输出文件夹: "先にファイルを追加し、出力フォルダを選択してください",
+  "点击上方按钮添加 PDF 文件，或把文件拖到这里":
+    "上のボタンで PDF を追加するか、ここにファイルをドロップしてください",
+  "批次完成：成功 {ok}，失败 {fail}": "バッチ完了：成功 {ok}、失敗 {fail}",
+  已取消: "キャンセルしました",
+  "允许打印（含高质量打印）": "印刷を許可（高品質印刷を含む）",
+  "允许复制文本与图形": "テキストと図形のコピーを許可",
+  "允许修改文档内容": "文書内容の変更を許可",
+  "允许添加或修改注释": "注釈の追加・変更を許可",
 };
 
 export type Locale = "zh" | "en" | "ja";

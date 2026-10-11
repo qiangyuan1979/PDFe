@@ -11,6 +11,7 @@ import WatermarkPanel from "./panels/WatermarkPanel";
 import ConvertPanel from "./panels/ConvertPanel";
 import EditPanel from "./panels/EditPanel";
 import CompressPanel from "./panels/CompressPanel";
+import BatchPanel from "./panels/BatchPanel";
 
 export default function TaskPanel() {
   const task = useApp((s) => s.task);
@@ -28,6 +29,7 @@ export default function TaskPanel() {
     ocr: t("扫描版 OCR"),
     forms: t("表单字段"),
     compress: t("PDF 压缩"),
+    batch: t("批量处理"),
   };
 
   const DESC: Record<Exclude<TaskId, null>, string> = {
@@ -48,6 +50,9 @@ export default function TaskPanel() {
     forms: t("列出 PDF 表单（AcroForm）字段并填写新值，保存后立即写入文档。"),
     compress: t(
       "压缩当前文档并另存为新文件：压缩未压缩流、清理冗余对象，并可按档位对 JPEG 图片降采样重编码。",
+    ),
+    batch: t(
+      "把多个 PDF 文件排成队列依次处理：可选压缩、加密或导出明文副本，统一输出到指定文件夹，支持失败重试。",
     ),
   };
 
@@ -72,6 +77,7 @@ export default function TaskPanel() {
         {task === "ocr" && <OcrPanel />}
         {task === "forms" && <FormPanel />}
         {task === "compress" && <CompressPanel />}
+        {task === "batch" && <BatchPanel />}
         {task !== "merge" &&
           task !== "split" &&
           task !== "watermark" &&
@@ -81,7 +87,8 @@ export default function TaskPanel() {
           task !== "diagnose" &&
           task !== "ocr" &&
           task !== "forms" &&
-          task !== "compress" && (
+          task !== "compress" &&
+          task !== "batch" && (
             <>
               <p className="placeholder">{DESC[task]}</p>
               <p className="placeholder" style={{ marginTop: 12 }}>

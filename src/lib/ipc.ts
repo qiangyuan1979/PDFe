@@ -641,6 +641,37 @@ export function compressDocument(
   });
 }
 
+// ---------- 批量处理队列（v2） ----------
+
+/** 批量操作类型：压缩 / 加密 / 导出明文副本。 */
+export type BatchOp =
+  | { kind: "compress"; level: CompressLevel }
+  | { kind: "encrypt"; options: EncryptOptions }
+  | { kind: "decrypt" };
+
+export interface BatchFileResult {
+  outputPath: string;
+  /** 源文件字节数。 */
+  originalSize: number;
+  /** 产物字节数。 */
+  outputSize: number;
+}
+
+/** 处理单个文件（按路径读入/写盘，不依赖已打开的文档）。加密源文件需提供原打开密码。 */
+export function batchProcessFile(
+  sourcePath: string,
+  outputPath: string,
+  op: BatchOp,
+  password?: string | null,
+): Promise<BatchFileResult> {
+  return invoke<BatchFileResult>("batch_process_file", {
+    sourcePath,
+    outputPath,
+    op,
+    password: password ?? null,
+  });
+}
+
 // ========== OCR（可选 feature：cargo build --features ocr） ==========
 
 export interface OcrWord {

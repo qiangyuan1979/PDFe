@@ -3,7 +3,13 @@ import type { TaskId } from "../state/store";
 import { useT } from "../i18n";
 import { useAppVersion } from "../hooks/useAppVersion";
 
-const TOOLS: { id: Exclude<TaskId, null>; label: string; icon: string }[] = [
+const TOOLS: {
+  id: Exclude<TaskId, null>;
+  label: string;
+  icon: string;
+  /** 为 false 时该工具不依赖已打开的文档（默认 true）。 */
+  needsDoc?: boolean;
+}[] = [
   { id: "merge", label: "合并", icon: "🗂" },
   { id: "split", label: "拆分", icon: "✂" },
   { id: "watermark", label: "水印", icon: "💧" },
@@ -14,6 +20,7 @@ const TOOLS: { id: Exclude<TaskId, null>; label: string; icon: string }[] = [
   { id: "ocr", label: "OCR", icon: "🔍" },
   { id: "forms", label: "表单", icon: "📝" },
   { id: "compress", label: "压缩", icon: "🗜" },
+  { id: "batch", label: "批量", icon: "📚", needsDoc: false },
 ];
 
 export default function Toolbar({
@@ -70,7 +77,7 @@ export default function Toolbar({
         <button
           key={item.id}
           className={`tbtn${task === item.id ? " active" : ""}`}
-          disabled={!hasDoc}
+          disabled={item.needsDoc === false ? false : !hasDoc}
           onClick={() => openTask(task === item.id ? null : item.id)}
         >
           {item.icon} {t(item.label)}

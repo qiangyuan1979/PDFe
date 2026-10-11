@@ -1,3 +1,4 @@
+pub mod batch;
 pub mod compress;
 pub mod convert;
 pub mod document;
@@ -75,6 +76,7 @@ pub fn run() {
             security::export_encrypted_copy,
             security::reload_plain,
             compress::compress_document,
+            batch::batch_process_file,
             convert::export_pages_to_images,
             convert::images_to_pdf,
             office::detect_office,
