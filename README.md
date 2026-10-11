@@ -101,7 +101,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build-msix.ps1 -Sign None `
 
 合计 **363** 项 Rust 测试（lib 162 + 集成 173 + E2E 8 + 性能 20），`cargo test -- --test-threads=1` 全绿。
 
-> ⚠️ 必须加 `--test-threads=1`：PDFium 非线程安全，并行跑会随机触发 `STATUS_HEAP_CORRUPTION`（0xc0000374）。
+> ⚠️ PDFium 非线程安全，并行跑会随机触发 `STATUS_HEAP_CORRUPTION`（0xc0000374）。已由 `src-tauri/.cargo/config.toml` 设 `RUST_TEST_THREADS=1` 自动规避，直接 `cargo test` 即可（显式 `-- --test-threads=1` 仍可）。
 
 E2E 测试覆盖跨模块业务场景：打开→浏览/搜索→编辑（注释/文本重写）→重开验证；不启动 Tauri runtime，直接调用各模块的 `_logic` 纯函数，验证 bytes 跨步骤流转 + 持久化正确。
 
@@ -111,7 +111,7 @@ E2E 测试覆盖跨模块业务场景：打开→浏览/搜索→编辑（注释
 ```bash
 # 后端
 cd src-tauri
-cargo test -- --test-threads=1    # 首次会生成 large_100/500.pdf fixture
+cargo test                        # 首次会生成 large_100/500.pdf fixture（线程数已由 .cargo/config.toml 限定为 1）
 cargo test --test e2e             # 仅跑 E2E 场景
 cargo test --test commands        # 仅跑命令层集成测试
 cargo clippy --all-targets        # 提交前门禁：应零告警

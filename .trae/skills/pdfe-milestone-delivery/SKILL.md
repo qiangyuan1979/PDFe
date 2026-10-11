@@ -65,7 +65,7 @@ src-tauri/src/
 
 - Rust 测试放 `src-tauri/tests/<feature>.rs`
 - 调纯函数（`_logic`）而非 command，避免 Tauri 运行时依赖
-- **必须** `--test-threads=1`（pdfium 全局单例）
+- pdfium 全局单例非线程安全：已由 `src-tauri/.cargo/config.toml` 设 `RUST_TEST_THREADS=1` 自动串行化，无需手动加 `--test-threads=1`
 - 每个功能至少 4 个测试：正常路径 + 边界 + 错误 + 另一种输入
 
 ### 6. 验证
@@ -73,7 +73,7 @@ src-tauri/src/
 ```bash
 # Rust 编译 + 测试
 cd src-tauri && cargo check
-cd src-tauri && cargo test -- --test-threads=1
+cd src-tauri && cargo test
 
 # Rust lint 门禁（应零告警）
 cd src-tauri && cargo clippy --all-targets

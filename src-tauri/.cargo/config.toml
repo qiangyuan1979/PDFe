@@ -1,0 +1,5 @@
+# PDFium 非线程安全：并发调用会触发 STATUS_HEAP_CORRUPTION (0xc0000374)。
+# 生产侧已用 document::pdfium_gate() 串行化命令入口，但测试直接调用
+# pdfe_lib::pdfium()，因此强制测试二进制单线程运行。
+[env]
+RUST_TEST_THREADS = "1"
