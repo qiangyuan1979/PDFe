@@ -1,3 +1,4 @@
+pub mod compress;
 pub mod convert;
 pub mod document;
 pub mod ebook;
@@ -73,6 +74,7 @@ pub fn run() {
             security::export_plain_copy,
             security::export_encrypted_copy,
             security::reload_plain,
+            compress::compress_document,
             convert::export_pages_to_images,
             convert::images_to_pdf,
             office::detect_office,

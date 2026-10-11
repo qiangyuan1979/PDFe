@@ -137,6 +137,10 @@ pub enum AppError {
     // ------ 原生阅读（非 PDF 文档） ------
     #[error("File is too large to open (limit {limit_mb} MB)")]
     FileTooLarge { limit_mb: u32 },
+
+    // ------ 压缩（v2） ------
+    #[error("Failed to compress PDF: {detail}")]
+    PdfCompressFailed { detail: String },
 }
 
 impl From<pdfium_render::prelude::PdfiumError> for AppError {
@@ -218,6 +222,7 @@ impl AppError {
             AppError::PasswordEmpty => "password_empty",
             AppError::PdfEncryptFailed { .. } => "pdf_encrypt_failed",
             AppError::FileTooLarge { .. } => "file_too_large",
+            AppError::PdfCompressFailed { .. } => "pdf_compress_failed",
         }
     }
 
@@ -266,6 +271,9 @@ impl AppError {
                 m.insert("detail".into(), detail.clone());
             }
             AppError::PdfEncryptFailed { detail } => {
+                m.insert("detail".into(), detail.clone());
+            }
+            AppError::PdfCompressFailed { detail } => {
                 m.insert("detail".into(), detail.clone());
             }
             AppError::FormFieldWriteUnsupported { kind } => {
@@ -404,6 +412,10 @@ mod tests {
                 AppError::PdfEncryptFailed { detail: "d".into() },
             ),
             ("file_too_large", AppError::FileTooLarge { limit_mb: 64 }),
+            (
+                "pdf_compress_failed",
+                AppError::PdfCompressFailed { detail: "d".into() },
+            ),
         ];
 
         // All codes must be non-empty.

@@ -26,6 +26,7 @@ export type TaskId =
   | "diagnose"
   | "ocr"
   | "forms"
+  | "compress"
   | null;
 /** 内容编辑面板的内层页签 */
 export type EditTab = "annot" | "deep";

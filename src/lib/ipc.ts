@@ -613,6 +613,34 @@ export function exportEncryptedCopy(
   return invoke<string>("export_encrypted_copy", { docId, outputPath, options });
 }
 
+// ---------- PDF 压缩（v2） ----------
+
+/** 压缩档位：light 仅结构优化；standard / strong 追加图片降采样。 */
+export type CompressLevel = "light" | "standard" | "strong";
+
+export interface CompressResult {
+  outputPath: string;
+  /** 压缩前的源字节数。 */
+  originalSize: number;
+  /** 压缩后的字节数。 */
+  compressedSize: number;
+}
+
+/** 把当前文档压缩后另存到新路径（不改动内存中的文档）。加密文档需提供原打开密码。 */
+export function compressDocument(
+  docId: number,
+  outputPath: string,
+  level: CompressLevel,
+  password?: string | null,
+): Promise<CompressResult> {
+  return invoke<CompressResult>("compress_document", {
+    docId,
+    outputPath,
+    level,
+    password: password ?? null,
+  });
+}
+
 // ========== OCR（可选 feature：cargo build --features ocr） ==========
 
 export interface OcrWord {

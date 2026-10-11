@@ -645,6 +645,35 @@ const en: Record<string, string> = {
   "文件过大，仅显示前 {n} 行": "File too large; showing only the first {n} lines",
   "文件过大，无法打开（上限 {limitMb} MB）": "File is too large to open (limit {limitMb} MB)",
   只读: "Read-only",
+  // ---------- PDF 压缩（v2） ----------
+  压缩: "Compress",
+  "PDF 压缩": "PDF Compress",
+  "压缩当前文档并另存为新文件：压缩未压缩流、清理冗余对象，并可按档位对 JPEG 图片降采样重编码。":
+    "Compress the current document into a new file: compress uncompressed streams, prune redundant objects, and optionally downsample and re-encode JPEG images by level.",
+  "轻度（仅结构优化）": "Light (structure only)",
+  "压缩未压缩流并清理冗余对象，不改变图片质量，速度最快。":
+    "Compress uncompressed streams and prune redundant objects without touching image quality — the fastest option.",
+  "标准（推荐）": "Standard (recommended)",
+  "在结构优化基础上，把图片最长边限制到 1600 像素并重编码，体积与清晰度较均衡。":
+    "On top of structure optimization, cap the longest image edge at 1600 px and re-encode, balancing size and clarity.",
+  强力: "Strong",
+  "把图片最长边限制到 1024 像素、画质更低，体积最小，适合屏幕阅读。":
+    "Cap the longest image edge at 1024 px with lower quality — the smallest size, suited to on-screen reading.",
+  "压缩另存为": "Compress and Save As",
+  "已压缩另存：{path}": "Compressed and saved as: {path}",
+  "压缩当前文档并另存为新文件。压缩只作用于落盘副本，内存中的文档与编辑状态不受影响。":
+    "Compress the current document into a new file. Compression only affects the saved copy; the in-memory document and edit state are unchanged.",
+  "当前文档大小：{size}": "Current document size: {size}",
+  压缩档位: "Compression level",
+  "加密文档的打开密码（未加密可留空）":
+    "Open password for encrypted documents (leave empty if not encrypted)",
+  压缩前: "Before",
+  压缩后: "After",
+  体积变化: "Size change",
+  "减少 {percent}%": "Reduced by {percent}%",
+  基本不变: "Unchanged",
+  "压缩中…": "Compressing…",
+  "压缩另存为…": "Compress and Save As…",
 };
 
 const ja: Record<string, string> = {
@@ -1289,6 +1318,35 @@ const ja: Record<string, string> = {
   "文件过大，仅显示前 {n} 行": "ファイルが大きすぎるため、先頭 {n} 行のみ表示します",
   "文件过大，无法打开（上限 {limitMb} MB）": "ファイルが大きすぎて開けません（上限 {limitMb} MB）",
   只读: "読み取り専用",
+  // ---------- PDF 圧縮（v2） ----------
+  压缩: "圧縮",
+  "PDF 压缩": "PDF 圧縮",
+  "压缩当前文档并另存为新文件：压缩未压缩流、清理冗余对象，并可按档位对 JPEG 图片降采样重编码。":
+    "現在の文書を新しいファイルとして圧縮保存します：未圧縮ストリームの圧縮、不要オブジェクトの削除、レベルに応じた JPEG 画像のダウンサンプル再エンコードを行います。",
+  "轻度（仅结构优化）": "軽度（構造最適化のみ）",
+  "压缩未压缩流并清理冗余对象，不改变图片质量，速度最快。":
+    "未圧縮ストリームを圧縮し不要オブジェクトを削除します。画質は変えず、最も高速です。",
+  "标准（推荐）": "標準（推奨）",
+  "在结构优化基础上，把图片最长边限制到 1600 像素并重编码，体积与清晰度较均衡。":
+    "構造最適化に加え、画像の最長辺を 1600 ピクセルに制限して再エンコードします。容量と鮮明さのバランスが取れています。",
+  强力: "強力",
+  "把图片最长边限制到 1024 像素、画质更低，体积最小，适合屏幕阅读。":
+    "画像の最長辺を 1024 ピクセルに制限し画質を下げます。容量が最小で、画面での閲覧に適しています。",
+  "压缩另存为": "圧縮して名前を付けて保存",
+  "已压缩另存：{path}": "圧縮して別名保存しました：{path}",
+  "压缩当前文档并另存为新文件。压缩只作用于落盘副本，内存中的文档与编辑状态不受影响。":
+    "現在の文書を新しいファイルとして圧縮保存します。圧縮は保存されたコピーにのみ作用し、メモリ上の文書と編集状態には影響しません。",
+  "当前文档大小：{size}": "現在の文書サイズ：{size}",
+  压缩档位: "圧縮レベル",
+  "加密文档的打开密码（未加密可留空）":
+    "暗号化文書の開封パスワード（未暗号化の場合は空欄で可）",
+  压缩前: "圧縮前",
+  压缩后: "圧縮後",
+  体积变化: "容量変化",
+  "减少 {percent}%": "{percent}% 削減",
+  基本不变: "ほぼ変化なし",
+  "压缩中…": "圧縮中…",
+  "压缩另存为…": "圧縮して名前を付けて保存…",
 };
 
 export type Locale = "zh" | "en" | "ja";
@@ -1362,6 +1420,8 @@ const errZh: Record<string, string> = {
   // ------ 加密导出（P4 / M6） ------
   password_empty: "打开密码与权限密码不能同时为空",
   pdf_encrypt_failed: "加密 PDF 失败：{detail}",
+  // ------ PDF 压缩（v2） ------
+  pdf_compress_failed: "压缩 PDF 失败：{detail}",
   // ------ 表单字段（M6） ------
   form_field_write_unsupported:
     "设置 {kind} 类型的字段值暂不支持：pdfium-render 0.8.37 没有公开 API 可修改此类字段。",
@@ -1421,6 +1481,7 @@ const KNOWN_ERROR_CODES = new Set([
   "ocr_failed",
   "password_empty",
   "pdf_encrypt_failed",
+  "pdf_compress_failed",
   "form_field_write_unsupported",
   "file_too_large",
 ]);

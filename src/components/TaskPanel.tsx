@@ -1,4 +1,4 @@
-﻿import { useApp } from "../state/store";
+import { useApp } from "../state/store";
 import type { TaskId } from "../state/store";
 import { useT } from "../i18n";
 import MergePanel from "./panels/MergePanel";
@@ -10,6 +10,7 @@ import DiagnosePanel from "./panels/DiagnosePanel";
 import WatermarkPanel from "./panels/WatermarkPanel";
 import ConvertPanel from "./panels/ConvertPanel";
 import EditPanel from "./panels/EditPanel";
+import CompressPanel from "./panels/CompressPanel";
 
 export default function TaskPanel() {
   const task = useApp((s) => s.task);
@@ -26,6 +27,7 @@ export default function TaskPanel() {
     diagnose: t("文档诊断"),
     ocr: t("扫描版 OCR"),
     forms: t("表单字段"),
+    compress: t("PDF 压缩"),
   };
 
   const DESC: Record<Exclude<TaskId, null>, string> = {
@@ -44,6 +46,9 @@ export default function TaskPanel() {
       "对扫描版 PDF 调用 Tesseract 识别文字，并把结果作为不可见文本层写回，生成可搜索 PDF。需要编译时启用 ocr feature。",
     ),
     forms: t("列出 PDF 表单（AcroForm）字段并填写新值，保存后立即写入文档。"),
+    compress: t(
+      "压缩当前文档并另存为新文件：压缩未压缩流、清理冗余对象，并可按档位对 JPEG 图片降采样重编码。",
+    ),
   };
 
   if (task === null) return null;
@@ -66,6 +71,7 @@ export default function TaskPanel() {
         {task === "diagnose" && <DiagnosePanel />}
         {task === "ocr" && <OcrPanel />}
         {task === "forms" && <FormPanel />}
+        {task === "compress" && <CompressPanel />}
         {task !== "merge" &&
           task !== "split" &&
           task !== "watermark" &&
@@ -74,7 +80,8 @@ export default function TaskPanel() {
           task !== "export" &&
           task !== "diagnose" &&
           task !== "ocr" &&
-          task !== "forms" && (
+          task !== "forms" &&
+          task !== "compress" && (
             <>
               <p className="placeholder">{DESC[task]}</p>
               <p className="placeholder" style={{ marginTop: 12 }}>
