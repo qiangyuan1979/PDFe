@@ -316,8 +316,6 @@ const en: Record<string, string> = {
   "扫描版 OCR": "Scanned OCR",
   "对扫描版 PDF 调用 Tesseract 识别文字，并把结果作为不可见文本层写回，生成可搜索 PDF。需要编译时启用 ocr feature。":
     "Run Tesseract OCR on scanned PDF and write the result as an invisible text layer to produce a searchable PDF. Requires the `ocr` build feature.",
-  "对扫描版 PDF 调用 Tesseract 识别文字，结果作为不可见文本层写回，生成可搜索 PDF。需 cargo build --features ocr。":
-    "Run Tesseract OCR on scanned PDF and write the result as an invisible text layer to produce a searchable PDF. Requires `cargo build --features ocr`.",
   语言代码: "Language code",
   "运行 OCR": "Run OCR",
   "识别中…": "Recognizing…",
@@ -326,6 +324,21 @@ const en: Record<string, string> = {
   "OCR 文本层已应用，请立即保存文档": "OCR text layer applied. Save the document now.",
   "已识别 {n} 个词（页 {p}）": "Recognized {n} words (page {p})",
   "请先运行 OCR 识别": "Run OCR first",
+  "把扫描版（纯图片）PDF 识别成可搜索文本：结果作为不可见文本层写回，可复制与检索，但不改变原有版面。":
+    "Turn a scanned (image-only) PDF into searchable text: the result is written back as an invisible text layer — copyable and searchable — without changing the original layout.",
+  "使用步骤：① 设置语言与 DPI → ② 运行 OCR → ③ 应用为可搜索文本层 → ④ 保存文档。":
+    "Steps: ① set language and DPI → ② Run OCR → ③ Apply as searchable layer → ④ save the document.",
+  "需使用启用 ocr feature 的构建（cargo build --features ocr），并已安装 Tesseract 与对应语言包。":
+    "Requires a build with the `ocr` feature (`cargo build --features ocr`) and Tesseract with the matching language packs installed.",
+  "当前构建未启用 OCR": "OCR is not enabled in this build",
+  "请使用 cargo build --features ocr 重新构建，并安装 Tesseract 引擎与语言包（如 eng、chi_sim）后重试。":
+    "Rebuild with `cargo build --features ocr`, install the Tesseract engine and language packs (e.g. eng, chi_sim), then retry.",
+  "eng 英文，chi_sim 简体中文，jpn 日文；多个语言用 + 组合，如 eng+chi_sim。":
+    "eng English, chi_sim Simplified Chinese, jpn Japanese; combine several with +, e.g. eng+chi_sim.",
+  "扫描件推荐 300；过低可能漏字，过高会明显变慢。":
+    "300 is recommended for scans; lower may miss text, higher is noticeably slower.",
+  "未识别到文字：可尝试提高 DPI，或更换/追加语言代码后重试。":
+    "No text recognized: try a higher DPI, or change/add a language code and retry.",
   未加密: "Unencrypted",
   允许: "Allowed",
   禁止: "Denied",
@@ -1257,8 +1270,6 @@ const ja: Record<string, string> = {
   "扫描版 OCR": "スキャンOCR",
   "对扫描版 PDF 调用 Tesseract 识别文字，并把结果作为不可见文本层写回，生成可搜索 PDF。需要编译时启用 ocr feature。":
     "スキャン版PDFからTesseractで文字認識し、結果を不可視テキストレイヤーとして書き戻して検索可能PDFを生成します。ビルド時に ocr feature を有効にしてください。",
-  "对扫描版 PDF 调用 Tesseract 识别文字，结果作为不可见文本层写回，生成可搜索 PDF。需 cargo build --features ocr。":
-    "スキャン版PDFからTesseractで文字認識し、結果を不可視テキストレイヤーとして書き戻して検索可能PDFを生成します。cargo build --features ocr でビルドしてください。",
   语言代码: "言語コード",
   "运行 OCR": "OCR実行",
   "识别中…": "認識中…",
@@ -1267,6 +1278,21 @@ const ja: Record<string, string> = {
   "OCR 文本层已应用，请立即保存文档": "OCRテキストレイヤーを適用しました。直ちに保存してください。",
   "已识别 {n} 个词（页 {p}）": "{n}語認識（ページ {p}）",
   "请先运行 OCR 识别": "先にOCRを実行してください",
+  "把扫描版（纯图片）PDF 识别成可搜索文本：结果作为不可见文本层写回，可复制与检索，但不改变原有版面。":
+    "スキャン版（画像のみ）のPDFを検索可能なテキストに変換します。結果は不可視テキストレイヤーとして書き戻され、コピーと検索が可能になりますが、元のレイアウトは変わりません。",
+  "使用步骤：① 设置语言与 DPI → ② 运行 OCR → ③ 应用为可搜索文本层 → ④ 保存文档。":
+    "手順：① 言語とDPIを設定 → ② OCRを実行 → ③ 検索可能テキストレイヤーを適用 → ④ 文書を保存。",
+  "需使用启用 ocr feature 的构建（cargo build --features ocr），并已安装 Tesseract 与对应语言包。":
+    "ocr feature を有効にしたビルド（cargo build --features ocr）が必要で、Tesseract と対応する言語パックがインストールされている必要があります。",
+  "当前构建未启用 OCR": "このビルドではOCRが有効になっていません",
+  "请使用 cargo build --features ocr 重新构建，并安装 Tesseract 引擎与语言包（如 eng、chi_sim）后重试。":
+    "cargo build --features ocr で再ビルドし、Tesseract エンジンと言語パック（例：eng、chi_sim）をインストールしてから再試行してください。",
+  "eng 英文，chi_sim 简体中文，jpn 日文；多个语言用 + 组合，如 eng+chi_sim。":
+    "eng は英語、chi_sim は簡体字中国語、jpn は日本語。複数の言語は + で連結します（例：eng+chi_sim）。",
+  "扫描件推荐 300；过低可能漏字，过高会明显变慢。":
+    "スキャン文書には300を推奨。低すぎると文字を取りこぼし、高すぎると明らかに遅くなります。",
+  "未识别到文字：可尝试提高 DPI，或更换/追加语言代码后重试。":
+    "文字が認識されませんでした。DPIを上げるか、言語コードを変更／追加して再試行してください。",
   // ---------- フォーム / 編集 / セキュリティ：未翻訳分の補完 ----------
   "X（左，pt）": "X（左、pt）",
   "Y（下，pt）": "Y（下、pt）",
