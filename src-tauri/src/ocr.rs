@@ -208,6 +208,7 @@ fn ocr_with_tesseract(
     page_index: u32,
     pdf_bytes: &[u8],
 ) -> AppResult<OcrPageResult> {
+    use std::path::Path;
     use tesseract::Tesseract;
 
     // tessdata 路径校验
@@ -222,13 +223,14 @@ fn ocr_with_tesseract(
     }
 
     let mut tess =
-        Tesseract::new(Some(&config.lang), config.tessdata_dir.as_deref()).map_err(|e| {
+        Tesseract::new(config.tessdata_dir.as_deref(), Some(config.lang.as_str())).map_err(|e| {
             AppError::OcrFailed {
                 detail: format!("init tesseract: {}", e),
             }
         })?;
 
-    tess.set_image_from_bytes(png_bytes)
+    tess = tess
+        .set_image_from_mem(png_bytes)
         .map_err(|e| AppError::OcrFailed {
             detail: format!("set image: {}", e),
         })?;

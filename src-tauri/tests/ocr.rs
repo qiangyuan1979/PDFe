@@ -152,15 +152,23 @@ fn ocr_page_unavailable_without_feature() {
     assert!(matches!(r, Err(AppError::OcrUnavailable)));
 }
 
-/// ocr_page_logic：feature on 时仍能正常返回（不在此测试，只测 feature off 路径）
+/// ocr_page_logic：feature on 时走真实 Tesseract 引擎，端到端识别出文本。
 #[test]
 #[cfg(feature = "ocr")]
 fn ocr_page_with_feature_smoke() {
-    // 此测试仅在 cargo test --features ocr 时运行。
-    // 不实际运行 Tesseract（需要 tessdata），只验证函数调用不会 panic。
     let bytes = fs::read(fixture("sample.pdf")).expect("fixture missing");
     let config = OcrConfig::default();
-    let _ = ocr_page_logic(&bytes, 0, &config);
+    let result = ocr_page_logic(&bytes, 0, &config);
+    match &result {
+        Ok(page) => {
+            let preview: Vec<&str> = page.words.iter().take(20).map(|w| w.text.as_str()).collect();
+            println!("OCR recognized {} words: {:?}", page.words.len(), preview);
+        }
+        Err(e) => println!("OCR error: {:?}", e),
+    }
+    let page = result.expect("real OCR should succeed on text fixture");
+    assert_eq!(page.page_index, 0);
+    assert!(!page.words.is_empty(), "real OCR should recognize at least one word");
 }
 
 /// OCR 错误码一致性：3 个新错误码应该都存在且唯一
