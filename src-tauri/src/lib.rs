@@ -10,6 +10,7 @@ pub mod forms;
 pub mod ocr;
 pub mod office;
 pub mod pages;
+pub mod pagenum;
 pub mod reader;
 pub mod render;
 pub mod security;

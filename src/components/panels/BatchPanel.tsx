@@ -6,7 +6,7 @@ import { translateError, useT } from "../../i18n";
 import { batchProcessFile, isApiError } from "../../lib/ipc";
 import type { BatchOp, CompressLevel, EncryptOptions } from "../../lib/ipc";
 
-type OpKind = "compress" | "encrypt" | "decrypt";
+type StepKind = "watermark" | "pageNumbers" | "compress" | "encrypt";
 type ItemStatus = "pending" | "processing" | "done" | "failed";
 
 interface BatchItem {
@@ -20,10 +20,11 @@ interface BatchItem {
   outputSize?: number;
 }
 
-const OPS: { id: OpKind; labelKey: string }[] = [
+const STEPS: { id: StepKind; labelKey: string }[] = [
+  { id: "watermark", labelKey: "文字水印" },
+  { id: "pageNumbers", labelKey: "添加页码" },
   { id: "compress", labelKey: "压缩" },
   { id: "encrypt", labelKey: "加密" },
-  { id: "decrypt", labelKey: "导出明文副本" },
 ];
 
 const LEVELS: { id: CompressLevel; labelKey: string }[] = [
@@ -39,12 +40,67 @@ const PERMS: { key: keyof Omit<EncryptOptions, "userPassword" | "ownerPassword">
   { key: "allowAnnotate", labelKey: "允许添加或修改注释" },
 ];
 
-/** 各操作的输出文件名后缀。 */
-const SUFFIX: Record<OpKind, string> = {
+const POSITIONS: { k: string; label: string }[] = [
+  { k: "top-left", label: "◤" },
+  { k: "top-center", label: "▲" },
+  { k: "top-right", label: "◥" },
+  { k: "middle-left", label: "◀" },
+  { k: "center", label: "◉" },
+  { k: "middle-right", label: "▶" },
+  { k: "bottom-left", label: "◣" },
+  { k: "bottom-center", label: "▼" },
+  { k: "bottom-right", label: "◢" },
+];
+
+/** 单步操作对应的输出文件名后缀。 */
+const STEP_SUFFIX: Record<StepKind, string> = {
+  watermark: "_watermarked",
+  pageNumbers: "_numbered",
   compress: "_compressed",
   encrypt: "_encrypted",
-  decrypt: "_plain",
 };
+
+/** 依「水印 → 页码 → 压缩 → 加密」的规范顺序构造操作链。 */
+function buildOps(
+  steps: Record<StepKind, boolean>,
+  wm: { text: string; fontSize: number; color: string; opacity: number; rotation: number; position: string; tiled: boolean; tileSpacing: number },
+  pn: { format: string; start: number; fontSize: number; color: string; opacity: number; position: string },
+  level: CompressLevel,
+  enc: { userPassword: string; ownerPassword: string; allowPrint: boolean; allowCopy: boolean; allowModify: boolean; allowAnnotate: boolean },
+): BatchOp[] {
+  const ops: BatchOp[] = [];
+  if (steps.watermark) {
+    ops.push({
+      kind: "watermark",
+      options: {
+        text: wm.text,
+        fontSize: wm.fontSize,
+        color: wm.color,
+        style: {
+          opacity: wm.opacity,
+          rotation: wm.rotation,
+          position: wm.position,
+          tiled: wm.tiled,
+          tileSpacing: wm.tileSpacing,
+          custom: null,
+        },
+      },
+    });
+  }
+  if (steps.pageNumbers) {
+    ops.push({ kind: "pageNumbers", options: { ...pn } });
+  }
+  if (steps.compress) ops.push({ kind: "compress", level });
+  if (steps.encrypt) ops.push({ kind: "encrypt", options: { ...enc } });
+  return ops;
+}
+
+/** 依操作链推导输出后缀：单步专有后缀 / 多步 `_batch` / 无步骤 `_plain`（导出明文副本）。 */
+function suffixFor(ops: BatchOp[]): string {
+  if (ops.length === 0) return "_plain";
+  if (ops.length === 1) return STEP_SUFFIX[ops[0].kind as StepKind];
+  return "_batch";
+}
 
 function baseName(p: string): string {
   return p.split(/[\\/]/).pop() || p;
@@ -71,7 +127,12 @@ export default function BatchPanel() {
   const t = useT();
 
   const [items, setItems] = useState<BatchItem[]>([]);
-  const [opKind, setOpKind] = useState<OpKind>("compress");
+  const [steps, setSteps] = useState<Record<StepKind, boolean>>({
+    watermark: false,
+    pageNumbers: false,
+    compress: true,
+    encrypt: false,
+  });
   const [level, setLevel] = useState<CompressLevel>("standard");
   const [userPw, setUserPw] = useState("");
   const [ownerPw, setOwnerPw] = useState("");
@@ -81,6 +142,19 @@ export default function BatchPanel() {
     allowModify: true,
     allowAnnotate: true,
   });
+  const [wmText, setWmText] = useState("仅供内部使用");
+  const [wmFontSize, setWmFontSize] = useState(36);
+  const [wmColor, setWmColor] = useState("#c81e1e");
+  const [wmOpacity, setWmOpacity] = useState(30);
+  const [wmRotation, setWmRotation] = useState(45);
+  const [wmPosition, setWmPosition] = useState("center");
+  const [wmTiled, setWmTiled] = useState(false);
+  const [pnFormat, setPnFormat] = useState("第 {n} 页 / 共 {total} 页");
+  const [pnStart, setPnStart] = useState(1);
+  const [pnFontSize, setPnFontSize] = useState(12);
+  const [pnColor, setPnColor] = useState("#000000");
+  const [pnOpacity, setPnOpacity] = useState(100);
+  const [pnPosition, setPnPosition] = useState("bottom-center");
   const [openPw, setOpenPw] = useState("");
   const [outDir, setOutDir] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
@@ -150,14 +224,39 @@ export default function BatchPanel() {
   const remove = (id: number) => setItems((prev) => prev.filter((it) => it.id !== id));
   const clearList = () => setItems([]);
 
-  const buildOp = (): BatchOp | null => {
-    if (opKind === "compress") return { kind: "compress", level };
-    if (opKind === "decrypt") return { kind: "decrypt" };
-    if (!userPw && !ownerPw) {
+  /** 校验并构造操作链；校验失败时提示并返回 null。 */
+  const makeOpList = (): BatchOp[] | null => {
+    if (steps.watermark && !wmText.trim()) {
+      pushToast("error", t("水印文字不能为空"));
+      return null;
+    }
+    if (steps.encrypt && !userPw && !ownerPw) {
       pushToast("error", t("请至少填写打开密码或权限密码，否则不会产生任何限制。"));
       return null;
     }
-    return { kind: "encrypt", options: { userPassword: userPw, ownerPassword: ownerPw, ...perms } };
+    return buildOps(
+      steps,
+      {
+        text: wmText,
+        fontSize: wmFontSize,
+        color: wmColor,
+        opacity: wmOpacity,
+        rotation: wmRotation,
+        position: wmPosition,
+        tiled: wmTiled,
+        tileSpacing: 120,
+      },
+      {
+        format: pnFormat,
+        start: pnStart,
+        fontSize: pnFontSize,
+        color: pnColor,
+        opacity: pnOpacity,
+        position: pnPosition,
+      },
+      level,
+      { userPassword: userPw, ownerPassword: ownerPw, ...perms },
+    );
   };
 
   const start = async (ids: number[]) => {
@@ -166,9 +265,10 @@ export default function BatchPanel() {
       pushToast("error", t("请先添加文件并选择输出文件夹"));
       return;
     }
-    const op = buildOp();
-    if (!op) return;
+    const ops = makeOpList();
+    if (!ops) return;
 
+    const suffix = suffixFor(ops);
     const targets = items.filter((it) => ids.includes(it.id));
     setRunning(true);
     cancelRef.current = false;
@@ -180,9 +280,9 @@ export default function BatchPanel() {
       setItems((prev) =>
         prev.map((x) => (x.id === it.id ? { ...x, status: "processing", message: undefined } : x)),
       );
-      const outputPath = joinPath(outDir, `${stem(it.name)}${SUFFIX[opKind]}.pdf`);
+      const outputPath = joinPath(outDir, `${stem(it.name)}${suffix}.pdf`);
       try {
-        const res = await batchProcessFile(it.path, outputPath, op, openPw || null);
+        const res = await batchProcessFile(it.path, outputPath, ops, openPw || null);
         ok += 1;
         setItems((prev) =>
           prev.map((x) => (x.id === it.id ? { ...x, status: "done", outputSize: res.outputSize } : x)),
@@ -215,6 +315,7 @@ export default function BatchPanel() {
   const pendingIds = items.filter((i) => i.status !== "done").map((i) => i.id);
   const failedIds = items.filter((i) => i.status === "failed").map((i) => i.id);
   const canStart = !running && items.length > 0 && outDir !== null;
+  const noStep = !steps.watermark && !steps.pageNumbers && !steps.compress && !steps.encrypt;
 
   return (
     <div className="task-body">
@@ -252,24 +353,179 @@ export default function BatchPanel() {
       </div>
 
       <div className="field">
-        <label>{t("操作类型")}</label>
+        <label>{t("处理步骤")}</label>
         <div className="compress-levels">
-          {OPS.map((o) => (
-            <label key={o.id} className="compress-level">
+          {STEPS.map((s) => (
+            <label key={s.id} className="compress-level">
               <input
-                type="radio"
-                name="batch-op"
-                checked={opKind === o.id}
-                onChange={() => setOpKind(o.id)}
+                type="checkbox"
+                checked={steps[s.id]}
+                onChange={() => setSteps((prev) => ({ ...prev, [s.id]: !prev[s.id] }))}
                 disabled={running}
               />
-              <span className="compress-level-label">{t(o.labelKey)}</span>
+              <span className="compress-level-label">{t(s.labelKey)}</span>
             </label>
           ))}
         </div>
       </div>
 
-      {opKind === "compress" && (
+      {steps.watermark && (
+        <>
+          <div className="field">
+            <label htmlFor="batch-wm-text">{t("水印文字")}</label>
+            <input
+              id="batch-wm-text"
+              value={wmText}
+              onChange={(e) => setWmText(e.target.value)}
+              placeholder={t("支持中文")}
+              disabled={running}
+            />
+          </div>
+          <div className="form-row">
+            <label>{t("字号")}</label>
+            <input
+              type="number"
+              min={8}
+              max={200}
+              value={wmFontSize}
+              onChange={(e) => setWmFontSize(Math.max(8, parseInt(e.target.value) || 36))}
+              style={{ width: 64 }}
+              disabled={running}
+            />
+            <label>{t("颜色")}</label>
+            <input
+              type="color"
+              value={wmColor}
+              onChange={(e) => setWmColor(e.target.value)}
+              disabled={running}
+            />
+          </div>
+          <div className="form-row">
+            <label>{t("透明度")}</label>
+            <input
+              type="range"
+              min={5}
+              max={100}
+              value={wmOpacity}
+              onChange={(e) => setWmOpacity(parseInt(e.target.value))}
+              style={{ flex: 1 }}
+              disabled={running}
+            />
+            <span style={{ width: 34, textAlign: "right", color: "var(--fg-dim)" }}>{wmOpacity}%</span>
+          </div>
+          <div className="form-row">
+            <label>{t("旋转角度")}</label>
+            <input
+              type="number"
+              min={-180}
+              max={180}
+              value={wmRotation}
+              onChange={(e) => setWmRotation(parseInt(e.target.value) || 0)}
+              style={{ width: 64 }}
+              disabled={running}
+            />
+            <label className="chk">
+              <input
+                type="checkbox"
+                checked={wmTiled}
+                onChange={(e) => setWmTiled(e.target.checked)}
+                disabled={running}
+              />
+              {t("平铺整页")}
+            </label>
+          </div>
+          <div className="field">
+            <label>{t("位置")}</label>
+            <div className="pos-grid">
+              {POSITIONS.map((p) => (
+                <button
+                  key={p.k}
+                  className={wmPosition === p.k ? "active" : ""}
+                  onClick={() => setWmPosition(p.k)}
+                  disabled={running}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {steps.pageNumbers && (
+        <>
+          <div className="field">
+            <label htmlFor="batch-pn-format">{t("页码格式")}</label>
+            <input
+              id="batch-pn-format"
+              value={pnFormat}
+              onChange={(e) => setPnFormat(e.target.value)}
+              disabled={running}
+            />
+            <p className="placeholder" style={{ marginTop: 6, fontSize: 11 }}>
+              {t("支持 {n}（当前页）与 {total}（总页数）")}
+            </p>
+          </div>
+          <div className="form-row">
+            <label>{t("起始页码")}</label>
+            <input
+              type="number"
+              min={1}
+              value={pnStart}
+              onChange={(e) => setPnStart(Math.max(1, parseInt(e.target.value) || 1))}
+              style={{ width: 64 }}
+              disabled={running}
+            />
+            <label>{t("字号")}</label>
+            <input
+              type="number"
+              min={6}
+              max={72}
+              value={pnFontSize}
+              onChange={(e) => setPnFontSize(Math.max(6, parseInt(e.target.value) || 12))}
+              style={{ width: 64 }}
+              disabled={running}
+            />
+            <label>{t("颜色")}</label>
+            <input
+              type="color"
+              value={pnColor}
+              onChange={(e) => setPnColor(e.target.value)}
+              disabled={running}
+            />
+          </div>
+          <div className="form-row">
+            <label>{t("透明度")}</label>
+            <input
+              type="range"
+              min={5}
+              max={100}
+              value={pnOpacity}
+              onChange={(e) => setPnOpacity(parseInt(e.target.value))}
+              style={{ flex: 1 }}
+              disabled={running}
+            />
+            <span style={{ width: 34, textAlign: "right", color: "var(--fg-dim)" }}>{pnOpacity}%</span>
+          </div>
+          <div className="field">
+            <label>{t("位置")}</label>
+            <div className="pos-grid">
+              {POSITIONS.map((p) => (
+                <button
+                  key={p.k}
+                  className={pnPosition === p.k ? "active" : ""}
+                  onClick={() => setPnPosition(p.k)}
+                  disabled={running}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {steps.compress && (
         <div className="field">
           <label>{t("压缩档位")}</label>
           <div className="compress-levels">
@@ -289,7 +545,7 @@ export default function BatchPanel() {
         </div>
       )}
 
-      {opKind === "encrypt" && (
+      {steps.encrypt && (
         <>
           <div className="field">
             <label htmlFor="batch-user-pw">{t("打开密码（打开文档时需输入，可留空）")}</label>
@@ -325,6 +581,12 @@ export default function BatchPanel() {
             </label>
           ))}
         </>
+      )}
+
+      {noStep && (
+        <p className="placeholder">
+          {t("未选择任何步骤时，将导出明文副本（移除密码与权限）。")}
+        </p>
       )}
 
       <div className="field">

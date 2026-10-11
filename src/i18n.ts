@@ -701,6 +701,13 @@ const en: Record<string, string> = {
   "允许复制文本与图形": "Allow copying text and graphics",
   "允许修改文档内容": "Allow modifying document content",
   "允许添加或修改注释": "Allow adding or modifying annotations",
+  处理步骤: "Steps",
+  添加页码: "Add page numbers",
+  页码格式: "Number format",
+  起始页码: "Start number",
+  "支持 {n}（当前页）与 {total}（总页数）": "Supports {n} (current page) and {total} (total pages)",
+  "未选择任何步骤时，将导出明文副本（移除密码与权限）。":
+    "With no steps selected, a plain copy is exported (password and permissions removed).",
 };
 
 const ja: Record<string, string> = {
@@ -1401,6 +1408,13 @@ const ja: Record<string, string> = {
   "允许复制文本与图形": "テキストと図形のコピーを許可",
   "允许修改文档内容": "文書内容の変更を許可",
   "允许添加或修改注释": "注釈の追加・変更を許可",
+  处理步骤: "処理ステップ",
+  添加页码: "ページ番号を追加",
+  页码格式: "番号の書式",
+  起始页码: "開始番号",
+  "支持 {n}（当前页）与 {total}（总页数）": "{n}（現在のページ）と {total}（総ページ数）に対応",
+  "未选择任何步骤时，将导出明文副本（移除密码与权限）。":
+    "ステップを何も選択しない場合、平文コピーを書き出します（パスワードと権限を解除）。",
 };
 
 export type Locale = "zh" | "en" | "ja";

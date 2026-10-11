@@ -18,14 +18,14 @@ use crate::pages::{commit_and_return, load_doc, normalize_indices};
 const MARGIN: f32 = 36.0;
 
 /// 画布拖放得到的自定义位置：归一化因子（0–1，左下原点，同九宫格 fx/fy）。
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomPosition {
     pub x: f32,
     pub y: f32,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WatermarkStyle {
     /// 0–100
@@ -42,7 +42,7 @@ pub struct WatermarkStyle {
     pub custom: Option<CustomPosition>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TextWatermarkOpts {
     pub text: String,
@@ -64,7 +64,7 @@ pub struct ImageWatermarkOpts {
 
 // ---------- 工具函数 ----------
 
-fn parse_color(hex: &str, opacity: f32) -> PdfColor {
+pub(crate) fn parse_color(hex: &str, opacity: f32) -> PdfColor {
     let h = hex.trim_start_matches('#');
     let byte = |s: &str| u8::from_str_radix(s, 16).unwrap_or(128);
     let (r, g, b) = match h.len() {
@@ -76,7 +76,7 @@ fn parse_color(hex: &str, opacity: f32) -> PdfColor {
 }
 
 /// 估算文本宽度：CJK 字符按全宽、其余按 0.55 倍字号
-fn estimate_text_width(text: &str, font_size: f32) -> f32 {
+pub(crate) fn estimate_text_width(text: &str, font_size: f32) -> f32 {
     text.chars()
         .map(|c| if (c as u32) >= 0x2E80 { 1.0 } else { 0.55 })
         .sum::<f32>()
@@ -84,7 +84,7 @@ fn estimate_text_width(text: &str, font_size: f32) -> f32 {
 }
 
 /// 九宫格标识 → 归一化因子 `(fx, fy)`（左下原点，0–1）。
-fn position_factors(position: &str) -> (f32, f32) {
+pub(crate) fn position_factors(position: &str) -> (f32, f32) {
     match position {
         "top-left" => (0.0, 1.0),
         "top-center" => (0.5, 1.0),
@@ -98,11 +98,24 @@ fn position_factors(position: &str) -> (f32, f32) {
     }
 }
 
-/// 归一化因子 → 对象左下角坐标（含页边留白，钳制为非负）。
-fn anchor_at(fx: f32, fy: f32, page_w: f32, page_h: f32, obj_w: f32, obj_h: f32) -> (f32, f32) {
-    let x = MARGIN + fx * (page_w - 2.0 * MARGIN - obj_w);
-    let y = MARGIN + fy * (page_h - 2.0 * MARGIN - obj_h);
+/// 归一化因子 + 指定边距 → 对象左下角坐标（钳制为非负）。
+pub(crate) fn anchor_with_margin(
+    fx: f32,
+    fy: f32,
+    page_w: f32,
+    page_h: f32,
+    obj_w: f32,
+    obj_h: f32,
+    margin: f32,
+) -> (f32, f32) {
+    let x = margin + fx * (page_w - 2.0 * margin - obj_w);
+    let y = margin + fy * (page_h - 2.0 * margin - obj_h);
     (x.max(0.0), y.max(0.0))
+}
+
+/// 归一化因子 → 对象左下角坐标（使用水印默认边距，钳制为非负）。
+fn anchor_at(fx: f32, fy: f32, page_w: f32, page_h: f32, obj_w: f32, obj_h: f32) -> (f32, f32) {
+    anchor_with_margin(fx, fy, page_w, page_h, obj_w, obj_h, MARGIN)
 }
 
 /// 九宫格锚点 → 对象左下角坐标
@@ -389,6 +402,67 @@ fn apply_image_opacity(img: image::DynamicImage, opacity: f32) -> image::Dynamic
     image::DynamicImage::ImageRgba8(rgba)
 }
 
+// ---------- 纯函数 ----------
+
+/// 纯函数：为指定页叠加文字水印，返回新的 PDF 字节（可脱 Tauri 单测）。
+///
+/// `pages` 为空表示作用于全部页；越界页报 [`AppError::PageOutOfRange`]，
+/// 文本为空报 [`AppError::WatermarkTextEmpty`]。
+pub fn add_text_watermark_logic(
+    pdfium: &Pdfium,
+    bytes: &[u8],
+    pages: &[u32],
+    opts: &TextWatermarkOpts,
+) -> AppResult<Vec<u8>> {
+    if opts.text.trim().is_empty() {
+        return Err(AppError::WatermarkTextEmpty);
+    }
+    let mut doc = load_doc(pdfium, bytes)?;
+    let total = doc.pages().len() as u32;
+    let all: Vec<u32> = if pages.is_empty() {
+        (0..total).collect()
+    } else {
+        pages.to_vec()
+    };
+    let indices = normalize_indices(&all, total)?;
+    // 先取字体 token，避免与 pages_mut 可变借用冲突
+    let font_token = load_font_for_text(&mut doc, &opts.text)?;
+    let color = parse_color(&opts.color, opts.style.opacity);
+    let rot = opts.style.rotation;
+    let tiled = opts.style.tiled;
+    let spacing = opts.style.tile_spacing;
+    let font_size = opts.font_size.max(4.0);
+    let text_w = estimate_text_width(&opts.text, font_size);
+    {
+        let pages_col = doc.pages_mut();
+        for idx in indices {
+            let mut page = pages_col.get(idx)?;
+            let pw = page.width().value as f32;
+            let ph = page.height().value as f32;
+            let spots = if tiled {
+                tile_positions(pw, ph, text_w, font_size, spacing)
+            } else {
+                vec![anchor_for(&opts.style, pw, ph, text_w, font_size)]
+            };
+            let objects = page.objects_mut();
+            for (x, y) in spots {
+                let mut obj = objects.create_text_object(
+                    PdfPoints::new(x),
+                    PdfPoints::new(y),
+                    &opts.text,
+                    font_token,
+                    PdfPoints::new(font_size),
+                )?;
+                obj.set_fill_color(color)?;
+                if rot.abs() > 0.01 {
+                    obj.rotate_clockwise_degrees(rot)?;
+                }
+            }
+        }
+    }
+    Ok(doc.save_to_bytes()?)
+}
+
 // ---------- 命令 ----------
 
 #[tauri::command]
@@ -407,45 +481,7 @@ pub async fn add_text_watermark(
     let new_bytes = {
         let docs = state.docs.lock().unwrap();
         let entry = docs.get(&doc_id).ok_or(AppError::NotFound)?;
-        let mut doc = load_doc(pdfium, &entry.bytes)?;
-        let total = doc.pages().len() as u32;
-        let indices = normalize_indices(&pages, total)?;
-        // 先取字体 token，避免与 pages_mut 可变借用冲突
-        let font_token = load_font_for_text(&mut doc, &opts.text)?;
-        let color = parse_color(&opts.color, opts.style.opacity);
-        let rot = opts.style.rotation;
-        let tiled = opts.style.tiled;
-        let spacing = opts.style.tile_spacing;
-        let font_size = opts.font_size.max(4.0);
-        let text_w = estimate_text_width(&opts.text, font_size);
-        {
-            let pages_col = doc.pages_mut();
-            for idx in indices {
-                let mut page = pages_col.get(idx)?;
-                let pw = page.width().value as f32;
-                let ph = page.height().value as f32;
-                let spots = if tiled {
-                    tile_positions(pw, ph, text_w, font_size, spacing)
-                } else {
-                    vec![anchor_for(&opts.style, pw, ph, text_w, font_size)]
-                };
-                let objects = page.objects_mut();
-                for (x, y) in spots {
-                    let mut obj = objects.create_text_object(
-                        PdfPoints::new(x),
-                        PdfPoints::new(y),
-                        &opts.text,
-                        font_token,
-                        PdfPoints::new(font_size),
-                    )?;
-                    obj.set_fill_color(color)?;
-                    if rot.abs() > 0.01 {
-                        obj.rotate_clockwise_degrees(rot)?;
-                    }
-                }
-            }
-        }
-        doc.save_to_bytes()?
+        add_text_watermark_logic(pdfium, &entry.bytes, &pages, &opts)?
     };
     commit_and_return(&state, doc_id, new_bytes)
 }

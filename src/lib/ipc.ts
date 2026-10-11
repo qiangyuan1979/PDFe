@@ -643,10 +643,28 @@ export function compressDocument(
 
 // ---------- 批量处理队列（v2） ----------
 
-/** 批量操作类型：压缩 / 加密 / 导出明文副本。 */
+/** 页码选项（无需打开文档，直接叠加文本）。 */
+export interface PageNumberOpts {
+  /** 页码格式，支持 `{n}`（当前页）与 `{total}`（总页数）；空则默认 `"{n}"`。 */
+  format: string;
+  /** 首页页码编号（默认 1）。 */
+  start: number;
+  /** 字号（pt） */
+  fontSize: number;
+  /** "#RRGGBB" */
+  color: string;
+  /** 0–100 */
+  opacity: number;
+  /** 九宫格：top-left … center … bottom-right（默认 bottom-center）。 */
+  position: string;
+}
+
+/** 批量操作类型：压缩 / 加密 / 水印 / 页码 / 导出明文副本，按数组顺序依次施加。 */
 export type BatchOp =
   | { kind: "compress"; level: CompressLevel }
   | { kind: "encrypt"; options: EncryptOptions }
+  | { kind: "watermark"; options: TextWatermarkOpts }
+  | { kind: "pageNumbers"; options: PageNumberOpts }
   | { kind: "decrypt" };
 
 export interface BatchFileResult {
@@ -661,13 +679,13 @@ export interface BatchFileResult {
 export function batchProcessFile(
   sourcePath: string,
   outputPath: string,
-  op: BatchOp,
+  ops: BatchOp[],
   password?: string | null,
 ): Promise<BatchFileResult> {
   return invoke<BatchFileResult>("batch_process_file", {
     sourcePath,
     outputPath,
-    op,
+    ops,
     password: password ?? null,
   });
 }
