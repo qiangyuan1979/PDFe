@@ -431,7 +431,7 @@ System requirements: Windows 10 version 1809 or later (x64).
 | 短标题 | 50 | `PDFe` |
 | 排序标题 | 255 | `PDFe PDF reader editor` |
 | 语音标题 | 255 | `PDFe` |
-| 此版本中的新增功能 | 1500 | 0.1.0 首次提交**留空**；**0.2.0 起填写**（0.2.0 文案见 §3.4.1，**0.3.0 文案见 §3.4.2**） |
+| 此版本中的新增功能 | 1500 | 0.1.0 首次提交**留空**；**0.2.0 起填写**（0.2.0 文案见 §3.4.1，0.3.0 文案见 §3.4.2，**0.4.0 文案见 §3.4.3**） |
 | 其他系统要求 · 最低硬件 | ≤11 条 | `Windows 10 1809 或更高（x64）` / `64 位处理器` |
 | 其他系统要求 · 推荐硬件 | ≤11 条 | `Windows 11` / `4 GB 内存或更多` |
 
@@ -483,6 +483,36 @@ System requirements: Windows 10 version 1809 or later (x64).
   • Markdown documents can now be edited and saved: source editing with live preview, a formatting toolbar, line numbers and find & replace, saved with Ctrl+S
   • New "About" dialog: view the feature list and version, and check for updates via the Microsoft Store
   • Fixed the OCR engine's parameter order for more accurate recognition; improved test stability
+  ```
+
+#### 3.4.3 「此版本中的新增功能」文案（0.4.0）
+
+> **状态：规划中，文案待功能冻结后定稿。** 下列为拟涵盖功能要点，取自 [实施计划 v0.4.0 章节](superpowers/plans/2026-09-18-implementation-plan.md)。0.4.0 需待 0.3.0 认证通过并发布后方可提交（Store 硬约束：更新必须提升版本号，且同时只允许一个在认证中的提交）。定稿时按实际落地功能裁剪，并核对 ≤1500 字符。
+
+- **zh-CN**（Partner Center 中文一览）——**要点草案，非定稿**：
+
+  ```
+  v0.4.0 更新内容
+  · 打印：支持打印当前文档与指定页码范围
+  · 书签管理：新增、重命名、删除书签，并支持层级组织
+  · 注释增强：注释可编辑、可批量扁平化写入页面
+  · 页面裁剪：按边距或拖拽区域裁剪页面
+  · 多标签与最近文件：同时打开多个文档，快速回到最近使用
+  · 可更换外观：多套主题预设 + 自定义强调色，设置持久保存
+  · 表单能力完善、元数据编辑、日语界面等细节改进
+  ```
+
+- **en-US**（Partner Center 英文一览）——**要点草案，非定稿**：
+
+  ```
+  What's new in v0.4.0
+  • Printing: print the current document or a chosen page range
+  • Bookmark management: add, rename and delete bookmarks with nesting
+  • Annotation enhancements: edit annotations and flatten them into the page in bulk
+  • Page cropping: crop pages by margins or a dragged region
+  • Tabs and recent files: open several documents at once and jump back to recent ones
+  • Customizable appearance: multiple theme presets plus a custom accent color, persisted
+  • Refinements to form filling, metadata editing and the Japanese UI
   ```
 
 ## 4. Partner Center 侧待决策项（本文不代替决策）
@@ -576,9 +606,11 @@ System requirements: Windows 10 version 1809 or later (x64).
 
 > **2026-10-10 复核**：Partner Center submissions API 实测仅剩 `Submission 5`（releaseNumber 5，线上包 `PDFe_0.2.0_x64.msix` v0.2.0.0）。10/10 因上下文误判误建的草稿 `Submission 6`（同为 v0.2.0.0）已删除，**未做重复提交**（Store 硬约束：更新必须提升版本号，同版本会被拒）。
 
-### 5.3 0.3.0 更新包提交清单（本轮已备齐打包，待 Partner Center 提交）
+### 5.3 0.3.0 更新包提交清单（已提交认证，认证中）
 
 > 0.2.0 已上架，可新建提交。更新硬约束同 §5.2：必须**提升版本号**（`0.3.0 > 0.2.0`），且**同时只允许一个在认证中的提交**。本版首次随包附带 OCR 运行期依赖（`-Ocr`），包体明显增大属预期。
+>
+> **2026-10-12 状态**：`Submission 6` 已于当日提交认证，当前状态 `Update in certification`；待认证通过并发布后方可再新建下一提交（0.4.0）。
 
 - [x] 版本升至 `0.3.0`（`package.json` / `package-lock.json` / `Cargo.toml` / `tauri.conf.json` 四处同步，`Cargo.lock` 随构建更新），MSIX 补齐为 `0.3.0.0`
 - [x] 出未签名上架包（含 OCR）：
@@ -591,9 +623,31 @@ System requirements: Windows 10 version 1809 or later (x64).
       - 产物 `src-tauri\target\msix\PDFe_0.3.0_x64.msix`：**16,438,946 字节**（较 0.2.0 的 7,528,345 字节 +约 8.9 MB，OCR DLL 闭包 + `tessdata` 语言包所致），SHA256 `ABAF192A5ADFA920CBCF6199DB5E8F0A1D40AC9ED19AD41C653DD847EDB4D382`，`Get-AuthenticodeSignature` = **NotSigned**
       - 自检 ② 条全过：`layout\pdfe.exe` 9,265,664 字节、字节内含 `assets/index-`（偏移 7972333，非 dev 坏包）✓；`NotSigned` ✓
       - 清单核对：`Identity/@Name`=`CCB6DC78.PDFe`、`Identity/@Publisher`=`CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F`、`PublisherDisplayName`=`老袁不圆润`、`Version`=`0.3.0.0`，无残留占位符 ✓
-- [ ] Partner Center → 新建提交 → 上传上述 `PDFe_0.3.0_x64.msix`（若本地侧载自测覆写了同名文件，按上行命令重出未签名副本再传；切勿传签名后的同名文件）
-- [ ] `此版本中的新增功能` 两语言填 §3.4.2 文案
-- [ ] `提交选项`（`runFullTrust` 说明，沿用 §4 短版）/ `隐私政策 URL` / `价格和可用性` 沿用上轮，逐页确认 Incomplete 清零 → 点 `提交认证`
-- [ ] 认证通过并发布后回填 §0「已上架版本」为 `0.3.0.0`
+- [x] Partner Center → 新建提交（`Submission 6`）→ 上传上述 `PDFe_0.3.0_x64.msix`（若本地侧载自测覆写了同名文件，按上行命令重出未签名副本再传；切勿传签名后的同名文件）
+- [x] `此版本中的新增功能` 两语言填 §3.4.2 文案（**2026-10-12**：先 `Cancel certification` 使提交转为可编辑，再于 zh-CN 一览填入 316 字符文案并重新提交）
+- [x] `提交选项`（`runFullTrust` 说明，沿用 §4 短版）/ `隐私政策 URL` / `价格和可用性` 沿用上轮，逐页确认 Incomplete 清零 → 点 `提交认证`（**2026-10-12 已提交**，状态 `Update in certification`）
+- [ ] 认证通过并发布后回填 §0「已上架版本」为 `0.3.0.0`（认证中，待发布）
 
 > ⚠️ 本轮（本仓库侧）只能完成到「出未签名包 + 文案 + 提交清单」；**上传与「提交认证」需在 Partner Center 由账号持有人操作**（仓库内无 Partner Center 凭据/自动化脚本）。提交后包二进制不得再改动。
+
+### 5.4 0.4.0 更新包提交清单（规划中，未开始）
+
+> **前置约束**：0.3.0（`Submission 6`）认证通过并发布后方可新建 0.4.0 提交。更新硬约束同 §5.2/§5.3：必须**提升版本号**（`0.4.0 > 0.3.0`），且**同时只允许一个在认证中的提交**。功能范围与任务分解见 [实施计划 v0.4.0 章节](superpowers/plans/2026-09-18-implementation-plan.md)，商店文案见 §3.4.3。
+
+- [ ] 版本升至 `0.4.0`（`package.json` / `package-lock.json` / `Cargo.toml` / `tauri.conf.json` 四处同步，`Cargo.lock` 随构建更新），MSIX 补齐为 `0.4.0.0`
+- [ ] 校验：`npm run build` 通过；`cargo test -- --test-threads=1` 全绿
+- [ ] 出未签名上架包（沿用 §5.3 命令，`-Ocr` 视需要保留，产物路径 `src-tauri\target\msix\PDFe_0.4.0_x64.msix`）：
+
+      ```powershell
+      npm run prepare:ocr
+      powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-msix.ps1 -Ocr -Sign None -IdentityName CCB6DC78.PDFe -Publisher "CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F" -PublisherDisplayName "老袁不圆润"
+      ```
+
+      - [ ] 自检 ② 条全过：`layout\pdfe.exe` 字节内含 `assets/index-`（非 dev 坏包）✓；`Get-AuthenticodeSignature` = `NotSigned` ✓
+      - [ ] 清单核对：`Identity/@Name`=`CCB6DC78.PDFe`、`Identity/@Publisher`=`CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F`、`PublisherDisplayName`=`老袁不圆润`、`Version`=`0.4.0.0`，无残留占位符 ✓
+- [ ] Partner Center → 新建提交 → 上传上述 `PDFe_0.4.0_x64.msix`（若本地侧载自测覆写了同名文件，按上行命令重出未签名副本再传；切勿传签名后的同名文件）
+- [ ] `此版本中的新增功能` 两语言填 §3.4.3 定稿文案（定稿前按实际落地功能裁剪并核对 ≤1500 字符）
+- [ ] `提交选项`（`runFullTrust` 说明，沿用 §4 短版）/ `隐私政策 URL` / `价格和可用性` 沿用上轮，逐页确认 Incomplete 清零 → 点 `提交认证`
+- [ ] 认证通过并发布后回填 §0「已上架版本」为 `0.4.0.0`
+
+> **状态（2026-10-12）**：本节为规划占位，尚未开始；功能开发需另获授权后按实施计划的执行顺序推进。
