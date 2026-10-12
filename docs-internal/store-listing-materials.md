@@ -11,7 +11,7 @@
 | 项 | 值 |
 |----|----|
 | 产品名 | PDFe（`productName` = `pdfe`，窗口标题 `PDFe`） |
-| 版本 | 当前 `0.3.0`（`tauri.conf.json` / `Cargo.toml` / `package.json` / `package-lock.json` 同步，MSIX 补齐为 `0.3.0.0`）；**已上架版本 `0.2.0.0`**（2026-10-06 认证通过并发布），`0.3.0.0` 已出未签名包、待提交认证 |
+| 版本 | 当前 `0.3.0`（`tauri.conf.json` / `Cargo.toml` / `package.json` / `package-lock.json` 同步，MSIX 补齐为 `0.3.0.0`）；**已上架版本 `0.2.0.0`**（2026-10-06 认证通过并发布），`0.3.0.0` 已出未签名包（`PDFe_0.3.0_x64.msix`）、已于 2026-10-12 提交认证（Submission 6，状态 `Update in certification`），待认证通过后发布 |
 | 标识 | `com.konnyyuan.pdfe` |
 | MSIX Identity | 清单为占位符 `__IDENTITY_NAME__` / `__PUBLISHER__` / `__PUBLISHER_DISPLAY_NAME__`；本地侧载默认注入 `konnyyuan.pdfe` / `CN=PDFe Local Test` / `PDFe`，上架注入 Partner Center 分配值 `CCB6DC78.PDFe` / `CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F` / `老袁不圆润`（见 §4） |
 | 包系列名 PFN | `CCB6DC78.PDFe_hmyrrnnxy08dw`（本机从 Store 安装实测包全名 `CCB6DC78.PDFe_0.1.0.0_x64__hmyrrnnxy08dw`；本地侧载测试的旧包系列为 `konnyyuan.pdfe_6cgrzvqajzfpg`，两者互不影响、可并存） |
