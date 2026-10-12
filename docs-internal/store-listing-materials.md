@@ -11,7 +11,7 @@
 | 项 | 值 |
 |----|----|
 | 产品名 | PDFe（`productName` = `pdfe`，窗口标题 `PDFe`） |
-| 版本 | 当前 `0.2.0`（`tauri.conf.json` / `Cargo.toml` / `package.json` 三处同步，MSIX 补齐为 `0.2.0.0`）；**已上架版本 `0.2.0.0`**（2026-10-06 认证通过并发布） |
+| 版本 | 当前 `0.3.0`（`tauri.conf.json` / `Cargo.toml` / `package.json` / `package-lock.json` 同步，MSIX 补齐为 `0.3.0.0`）；**已上架版本 `0.2.0.0`**（2026-10-06 认证通过并发布），`0.3.0.0` 已出未签名包、待提交认证 |
 | 标识 | `com.konnyyuan.pdfe` |
 | MSIX Identity | 清单为占位符 `__IDENTITY_NAME__` / `__PUBLISHER__` / `__PUBLISHER_DISPLAY_NAME__`；本地侧载默认注入 `konnyyuan.pdfe` / `CN=PDFe Local Test` / `PDFe`，上架注入 Partner Center 分配值 `CCB6DC78.PDFe` / `CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F` / `老袁不圆润`（见 §4） |
 | 包系列名 PFN | `CCB6DC78.PDFe_hmyrrnnxy08dw`（本机从 Store 安装实测包全名 `CCB6DC78.PDFe_0.1.0.0_x64__hmyrrnnxy08dw`；本地侧载测试的旧包系列为 `konnyyuan.pdfe_6cgrzvqajzfpg`，两者互不影响、可并存） |
@@ -431,7 +431,7 @@ System requirements: Windows 10 version 1809 or later (x64).
 | 短标题 | 50 | `PDFe` |
 | 排序标题 | 255 | `PDFe PDF reader editor` |
 | 语音标题 | 255 | `PDFe` |
-| 此版本中的新增功能 | 1500 | 0.1.0 首次提交**留空**；**0.2.0 起填写**（文案见下） |
+| 此版本中的新增功能 | 1500 | 0.1.0 首次提交**留空**；**0.2.0 起填写**（0.2.0 文案见 §3.4.1，**0.3.0 文案见 §3.4.2**） |
 | 其他系统要求 · 最低硬件 | ≤11 条 | `Windows 10 1809 或更高（x64）` / `64 位处理器` |
 | 其他系统要求 · 推荐硬件 | ≤11 条 | `Windows 11` / `4 GB 内存或更多` |
 
@@ -455,6 +455,34 @@ System requirements: Windows 10 version 1809 or later (x64).
   • Automatic encoding detection; line numbers for plain text and source code; follows the app light/dark theme
   • The app version is now shown in the toolbar and the Help panel
   • Stability fixes and refinements
+  ```
+
+#### 3.4.2 「此版本中的新增功能」文案（0.3.0）
+
+- **zh-CN**（Partner Center 中文一览）：
+
+  ```
+  v0.3.0 更新内容
+  · 新增 PDF 压缩：提供结构优化、图片降采样重编码等三档压缩，在尽量保持清晰度的同时减小文件体积
+  · 新增批量处理队列：可对多个文件依次执行压缩、加密、导出明文副本，并统一添加水印与页码
+  · 新增页面模板：一键插入空白、横线、网格、点阵页面
+  · 扫描版 PDF 文字识别（OCR）随附运行依赖，发布版离线即可识别中英文内容
+  · Markdown 文档支持编辑与保存：源码编辑 + 实时预览，配格式化工具条、行号与查找替换，Ctrl+S 保存
+  · 新增「关于」对话框：查看功能清单与版本信息，并可前往 Microsoft Store 检查更新
+  · 修正 OCR 引擎参数顺序以提升识别准确率；改进测试稳定性
+  ```
+
+- **en-US**（Partner Center 英文一览）：
+
+  ```
+  What's new in v0.3.0
+  • New PDF compression with three levels — structural optimization and image downsampling/re-encoding — to shrink file size while keeping quality
+  • New batch processing queue: run compress, encrypt and plain-copy export across multiple files in sequence, with optional watermarks and page numbers
+  • New page templates: insert blank, ruled, grid or dotted pages in one click
+  • OCR runtime is now bundled with the release, so scanned PDFs can be recognized offline in Chinese and English
+  • Markdown documents can now be edited and saved: source editing with live preview, a formatting toolbar, line numbers and find & replace, saved with Ctrl+S
+  • New "About" dialog: view the feature list and version, and check for updates via the Microsoft Store
+  • Fixed the OCR engine's parameter order for more accurate recognition; improved test stability
   ```
 
 ## 4. Partner Center 侧待决策项（本文不代替决策）
@@ -547,3 +575,25 @@ System requirements: Windows 10 version 1809 or later (x64).
 - [ ] 补打 `v0.2.0` tag
 
 > **2026-10-10 复核**：Partner Center submissions API 实测仅剩 `Submission 5`（releaseNumber 5，线上包 `PDFe_0.2.0_x64.msix` v0.2.0.0）。10/10 因上下文误判误建的草稿 `Submission 6`（同为 v0.2.0.0）已删除，**未做重复提交**（Store 硬约束：更新必须提升版本号，同版本会被拒）。
+
+### 5.3 0.3.0 更新包提交清单（本轮已备齐打包，待 Partner Center 提交）
+
+> 0.2.0 已上架，可新建提交。更新硬约束同 §5.2：必须**提升版本号**（`0.3.0 > 0.2.0`），且**同时只允许一个在认证中的提交**。本版首次随包附带 OCR 运行期依赖（`-Ocr`），包体明显增大属预期。
+
+- [x] 版本升至 `0.3.0`（`package.json` / `package-lock.json` / `Cargo.toml` / `tauri.conf.json` 四处同步，`Cargo.lock` 随构建更新），MSIX 补齐为 `0.3.0.0`
+- [x] 出未签名上架包（含 OCR）：
+
+      ```powershell
+      npm run prepare:ocr
+      powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-msix.ps1 -Ocr -Sign None -IdentityName CCB6DC78.PDFe -Publisher "CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F" -PublisherDisplayName "老袁不圆润"
+      ```
+
+      - 产物 `src-tauri\target\msix\PDFe_0.3.0_x64.msix`：**16,438,946 字节**（较 0.2.0 的 7,528,345 字节 +约 8.9 MB，OCR DLL 闭包 + `tessdata` 语言包所致），SHA256 `ABAF192A5ADFA920CBCF6199DB5E8F0A1D40AC9ED19AD41C653DD847EDB4D382`，`Get-AuthenticodeSignature` = **NotSigned**
+      - 自检 ② 条全过：`layout\pdfe.exe` 9,265,664 字节、字节内含 `assets/index-`（偏移 7972333，非 dev 坏包）✓；`NotSigned` ✓
+      - 清单核对：`Identity/@Name`=`CCB6DC78.PDFe`、`Identity/@Publisher`=`CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F`、`PublisherDisplayName`=`老袁不圆润`、`Version`=`0.3.0.0`，无残留占位符 ✓
+- [ ] Partner Center → 新建提交 → 上传上述 `PDFe_0.3.0_x64.msix`（若本地侧载自测覆写了同名文件，按上行命令重出未签名副本再传；切勿传签名后的同名文件）
+- [ ] `此版本中的新增功能` 两语言填 §3.4.2 文案
+- [ ] `提交选项`（`runFullTrust` 说明，沿用 §4 短版）/ `隐私政策 URL` / `价格和可用性` 沿用上轮，逐页确认 Incomplete 清零 → 点 `提交认证`
+- [ ] 认证通过并发布后回填 §0「已上架版本」为 `0.3.0.0`
+
+> ⚠️ 本轮（本仓库侧）只能完成到「出未签名包 + 文案 + 提交清单」；**上传与「提交认证」需在 Partner Center 由账号持有人操作**（仓库内无 Partner Center 凭据/自动化脚本）。提交后包二进制不得再改动。
