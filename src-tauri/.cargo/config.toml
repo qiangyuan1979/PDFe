@@ -3,3 +3,11 @@
 # pdfe_lib::pdfium()，因此强制测试二进制单线程运行。
 [env]
 RUST_TEST_THREADS = "1"
+
+# OCR（--features ocr）构建与运行所需的本机环境（vcpkg + Tesseract）。
+# 由 cargo 注入构建脚本、rustc 与测试进程，免手动设变量。
+# 注意：以下为机器相关绝对路径，换机需按实际安装位置调整。
+VCPKG_ROOT = "C:\\vcpkg"
+VCPKGRS_DYNAMIC = "1"
+LIBCLANG_PATH = "C:\\Users\\18910\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\site-packages\\clang\\native"
+TESSDATA_PREFIX = "C:\\tessdata"
