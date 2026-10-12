@@ -8,6 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "prepare:ocr": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-ocr-runtime.ps1",
+    "build:ocr": "npm run prepare:ocr && tauri build --features custom-protocol,ocr -c src-tauri/tauri.ocr.conf.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"scripts/**/*.mjs\" \"vite.config.ts\"",

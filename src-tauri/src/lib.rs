@@ -25,6 +25,11 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(document::AppState::default())
+        .setup(|_app| {
+            #[cfg(feature = "ocr")]
+            configure_ocr_runtime();
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             document::open_document,
             document::close_document,
@@ -91,4 +96,21 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// 发布版 OCR：安装包把 tessdata 放在 exe 同级的 `tessdata/`。
+/// 这里在启动时把 TESSDATA_PREFIX 指向该目录；开发/测试环境没有这个目录，
+/// 则保留 cargo `[env]` 注入的值（指向 C:\tessdata）。
+#[cfg(feature = "ocr")]
+fn configure_ocr_runtime() {
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    let Some(dir) = exe.parent() else {
+        return;
+    };
+    let tessdata = dir.join("tessdata");
+    if tessdata.join("eng.traineddata").is_file() {
+        std::env::set_var("TESSDATA_PREFIX", &tessdata);
+    }
 }

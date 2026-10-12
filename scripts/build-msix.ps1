@@ -26,6 +26,11 @@
   powershell -ExecutionPolicy Bypass -File scripts\build-msix.ps1 -SkipBuild
 
 .EXAMPLE
+  # 出带 OCR 支持的包（先跑 prepare-ocr-runtime.ps1 生成 ocr-runtime 暂存目录）
+  powershell -ExecutionPolicy Bypass -File scripts\prepare-ocr-runtime.ps1
+  powershell -ExecutionPolicy Bypass -File scripts\build-msix.ps1 -Ocr
+
+.EXAMPLE
   # 出提交 Microsoft Store 用的正式包：注入 Partner Center「产品标识」三个值
   # （Identity 的 Name / Publisher / PublisherDisplayName），由微软重签
   powershell -ExecutionPolicy Bypass -File scripts\build-msix.ps1 -Sign None `
@@ -57,10 +62,17 @@ param(
   [string]$PublisherDisplayName = "PDFe",
 
   # 签名后把证书信任到本机（LocalMachine\TrustedPeople，需管理员）并 Add-AppxPackage 安装验证
-  [switch]$Install
+  [switch]$Install,
+
+  # 打包 OCR 支持：启用 ocr feature，并把 src-tauri\ocr-runtime 下的 DLL+tessdata
+  # 一并暂存进包内（DLL 与 exe 同级，tessdata 放 exe 同级 tessdata\）。
+  # 需先运行 scripts\prepare-ocr-runtime.ps1 生成 ocr-runtime 暂存目录。
+  [switch]$Ocr
 )
 
 $ErrorActionPreference = "Stop"
+
+$cargoFeatures = if ($Ocr) { "custom-protocol,ocr" } else { "custom-protocol" }
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptDir
@@ -111,6 +123,7 @@ Write-Host "  仓库根    : $repoRoot"
 Write-Host "  可执行文件: $exeName"
 Write-Host "  版本      : $versionRaw -> $version4"
 Write-Host "  签名方式  : $Sign"
+Write-Host "  OCR       : $([bool]$Ocr)"
 
 # --- 1. 构建 ---
 if (-not $SkipBuild) {
@@ -119,9 +132,9 @@ if (-not $SkipBuild) {
   try { npm run build; if ($LASTEXITCODE -ne 0) { throw "npm run build 失败" } }
   finally { Pop-Location }
 
-  Write-Step "1/6 Rust release 构建 (cargo build --release --features custom-protocol)"
+  Write-Step "1/6 Rust release 构建 (cargo build --release --features $cargoFeatures)"
   Push-Location $tauriDir
-  try { cargo build --release --features custom-protocol; if ($LASTEXITCODE -ne 0) { throw "cargo build --release --features custom-protocol 失败" } }
+  try { cargo build --release --features $cargoFeatures; if ($LASTEXITCODE -ne 0) { throw "cargo build --release --features $cargoFeatures 失败" } }
   finally { Pop-Location }
 } else {
   Write-Step "1/6 跳过构建（-SkipBuild）"
@@ -143,6 +156,20 @@ New-Item -ItemType Directory -Path $assetsDir -Force | Out-Null
 Copy-Item $exePath -Destination $layoutDir
 # pdfium.dll 必须与 exe 同级（document.rs 优先在 exe 目录查找）
 Copy-Item $pdfiumDll -Destination $layoutDir
+
+if ($Ocr) {
+  # OCR 运行期依赖：DLL 必须与 exe 同级（进程启动时由加载器解析静态导入），
+  # tessdata 放同级 tessdata\ 目录（lib.rs::configure_ocr_runtime 据此设 TESSDATA_PREFIX）。
+  $ocrStage = Join-Path $tauriDir "ocr-runtime"
+  $ocrTessdataStage = Join-Path $ocrStage "tessdata"
+  Assert-Path $ocrStage "OCR 暂存目录（先运行 scripts\prepare-ocr-runtime.ps1）"
+  Assert-Path (Join-Path $ocrStage "tesseract55.dll") "OCR 运行期 DLL"
+  Assert-Path (Join-Path $ocrTessdataStage "eng.traineddata") "OCR 语言包"
+  Copy-Item (Join-Path $ocrStage "*.dll") -Destination $layoutDir
+  Copy-Item -Path $ocrTessdataStage -Destination $layoutDir -Recurse
+  $ocrDllCount = (Get-ChildItem $layoutDir -Filter *.dll).Count
+  Write-Host "  已暂存 OCR 依赖（DLL 与 exe 同级，tessdata\ 语言包）；layout 内 DLL 共 $ocrDllCount 个"
+}
 $assetFiles = @(
   "Square150x150Logo.png", "Square44x44Logo.png", "StoreLogo.png",
   "Square71x71Logo.png", "Square310x310Logo.png", "Wide310x150Logo.png"

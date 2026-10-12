@@ -43,6 +43,10 @@ cargo build --features ocr
   `set_render_mode(Invisible)` 会破坏文本对象导致 garbage 输出）
 - 字体复用 `watermark::load_font_for_text`，ASCII 自动选 `helvetica` 标准字体
 
+> 开发/测试期靠 `src-tauri/.cargo/config.toml` 的 `[env]` 注入 `VCPKG_ROOT` /
+> `VCPKGRS_DYNAMIC` / `TESSDATA_PREFIX`，cargo 启动的子进程能自动找到 DLL 与语言包；
+> **发布版 exe 没有这层增强**，须随包分发运行期依赖。打包方式见 [打包](#打包) 一节。
+
 ## 打包
 
 Tauri 2 在 Windows 下的 `bundle.targets = "all"` 只产出 msi + nsis，**不产出 MSIX**。
@@ -88,6 +92,29 @@ powershell -ExecutionPolicy Bypass -File scripts\build-msix.ps1 -Sign None `
 > ⚠️ 提交后包二进制不得再改动。中文 `PublisherDisplayName` 直接写在命令行可能被 PowerShell 5.1
 > 按 GBK 解码成乱码，建议写成 UTF-8 文件后用 `[System.IO.File]::ReadAllText(..., UTF8)` 读入再传参。
 > 三个标识值与踩坑记录见 [docs-internal/store-listing-materials.md](docs-internal/store-listing-materials.md) §4。
+
+### 打包带 OCR 的发布版
+
+发布版 exe 不带 cargo `[env]` 增强，须随包分发 OCR 运行期依赖：`tesseract55.dll`
+及其 17 个 PE 依赖闭包（**必须与 exe 同级**——Windows 加载器在进程启动时即按 exe
+目录解析静态导入，Rust 代码来不及改 PATH）+ `tessdata` 语言包（启动时
+`lib.rs::configure_ocr_runtime` 把 `TESSDATA_PREFIX` 指向 exe 同级的 `tessdata/`）。
+
+```powershell
+# 1) 暂存运行期依赖到 src-tauri\ocr-runtime\（17 DLL + tessdata，被 .gitignore 忽略）
+npm run prepare:ocr
+
+# 2a) MSI / NSIS（走 tauri.conf.json + overlay 的 bundle.resources）
+npm run build:ocr
+#     等价于：tauri build --features custom-protocol,ocr -c src-tauri/tauri.ocr.conf.json
+
+# 2b) MSIX（走 build-msix.ps1 手工暂存，加 -Ocr 开关）
+powershell -ExecutionPolicy Bypass -File scripts\build-msix.ps1 -Ocr
+```
+
+覆盖资源由 `src-tauri/tauri.ocr.conf.json` 提供（与主配置深度合并，默认
+`tauri build` 不受影响）：`ocr-runtime/*.dll` 平铺到资源根（= exe 目录），
+`ocr-runtime/tessdata/*.traineddata` 落到资源根的 `tessdata/`。
 
 ## 测试
 

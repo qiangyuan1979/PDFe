@@ -9,6 +9,9 @@ target/
 .webview2/
 *.local
 
+# 发布版 OCR 运行期暂存目录（由 scripts/prepare-ocr-runtime.ps1 生成）
+src-tauri/ocr-runtime/
+
 # 日志
 logs/
 *.log
