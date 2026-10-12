@@ -648,9 +648,12 @@ System requirements: Windows 10 version 1809 or later (x64).
       - [x] 自检 ② 条全过：`layout\pdfe.exe` 字节内含 `assets/index-`（非 dev 坏包）✓；`Get-AuthenticodeSignature` = `NotSigned` ✓
       - [x] 清单核对：`Identity/@Name`=`CCB6DC78.PDFe`、`Identity/@Publisher`=`CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F`、`PublisherDisplayName`=`老袁不圆润`、`Version`=`0.4.0.0`，无残留占位符 ✓
       - 产物 `src-tauri\target\msix\PDFe_0.4.0_x64.msix`：**16,481,208 字节**（较 0.3.0 的 16,438,946 字节 +约 41 KB），SHA256 `F648C2C3C4DF012CB28F91E00826338700C82430575258E44AAD36D392EAE308`，`Get-AuthenticodeSignature` = **NotSigned**（2026-10-13 出包，`layout\pdfe.exe` 8,935,848 字节含 `assets/index-`）
+- [x] 本地侧载自测（2026-10-13，自签名包 `-Sign SelfSigned`，复用证书 `CN=PDFe Local Test`）：安装成功（`konnyyuan.pdfe_0.4.0.0_x64__6cgrzvqajzfpg`，与商店族不同、可并存）；启动冒烟通过（进程 `pdfe` 存活、窗口 `PDFe`、`Responding=True`、RAM ≈29 MB）
+- [x] **渲染依赖验证（已安装包本身上）**：启动后模块含 `tesseract55.dll`/`leptonica-1.87.0.dll` 而**无** `pdfium.dll`（确认懒绑定）；`Ctrl+O` 打开样例 `src-tauri\tests\fixtures\sample.pdf`（2 页）后进程模块**新增 `pdfium.dll`** → PDFium 渲染链路在包内可用
+- [x] **OCR 依赖验证（同一份打包 payload `target\msix\layout`）**：`tesseract55.dll` + `leptonica` 随进程加载；驱动 OCR 面板（eng / 300 DPI）返回「已识别 4 个词（页 1）：Hello · PDFe · Page · 1」→ `tessdata\eng.traineddata` 生效、Tesseract 离线识别可用。注：已安装包无法开启 WebView2 可访问性开关，UI 自动化读不到其内容，故 OCR **功能**回归在同一份二进制的 layout 上完成；渲染则在已安装包本身上验证
 - [ ] Partner Center → 新建提交 → 上传上述 `PDFe_0.4.0_x64.msix`（若本地侧载自测覆写了同名文件，按上行命令重出未签名副本再传；切勿传签名后的同名文件）
 - [ ] `此版本中的新增功能` 两语言填 §3.4.3 定稿文案（定稿前按实际落地功能裁剪并核对 ≤1500 字符）
 - [ ] `提交选项`（`runFullTrust` 说明，沿用 §4 短版）/ `隐私政策 URL` / `价格和可用性` 沿用上轮，逐页确认 Incomplete 清零 → 点 `提交认证`
 - [ ] 认证通过并发布后回填 §0「已上架版本」为 `0.4.0.0`
 
-> **状态（2026-10-13）**：0.4.0 功能开发已完成，源码已升至 `0.4.0`（四处同步、`Cargo.lock` 已更新），build / 单测 / clippy 校验全绿；**未签名上架包已出并通过出包后自检**（`PDFe_0.4.0_x64.msix`，16,481,208 字节，SHA256 `F648C2C3…`，`NotSigned`）。商店文案 §3.4.3 仍为草案（含未落地项，待按实际范围定稿）。**Partner Center 提交尚待 0.3.0（`Submission 6`）认证通过并发布后执行**，且需另行授权。
+> **状态（2026-10-13）**：0.4.0 功能开发已完成，源码已升至 `0.4.0`（四处同步、`Cargo.lock` 已更新），build / 单测 / clippy 校验全绿；**未签名上架包已出并通过出包后自检**（`PDFe_0.4.0_x64.msix`，16,481,208 字节，SHA256 `F648C2C3…`，`NotSigned`）；**本轮已追加本地侧载自测与渲染 / OCR 依赖验证，均通过**（渲染在已安装包本身验证：打开样例 PDF 后进程加载 `pdfium.dll`；OCR 功能在同一份 payload 上验证：eng 识别出 4 个词）。商店文案 §3.4.3 仍为草案（含未落地项，待按实际范围定稿）。**Partner Center 提交尚待 0.3.0（`Submission 6`）认证通过并发布后执行**，且需另行授权。
