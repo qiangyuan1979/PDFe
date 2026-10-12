@@ -12,6 +12,7 @@ const TOOLS: {
 }[] = [
   { id: "merge", label: "合并", icon: "🗂" },
   { id: "split", label: "拆分", icon: "✂" },
+  { id: "crop", label: "裁剪", icon: "⛶" },
   { id: "watermark", label: "水印", icon: "💧" },
   { id: "edit", label: "编辑", icon: "✏" },
   { id: "security", label: "密码", icon: "🔒" },
@@ -20,6 +21,8 @@ const TOOLS: {
   { id: "ocr", label: "OCR", icon: "🔍" },
   { id: "forms", label: "表单", icon: "📝" },
   { id: "compress", label: "压缩", icon: "🗜" },
+  { id: "metadata", label: "属性", icon: "🏷" },
+  { id: "print", label: "打印", icon: "🖨" },
   { id: "batch", label: "批量", icon: "📚", needsDoc: false },
 ];
 

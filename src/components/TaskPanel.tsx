@@ -3,6 +3,7 @@ import type { TaskId } from "../state/store";
 import { useT } from "../i18n";
 import MergePanel from "./panels/MergePanel";
 import SplitPanel from "./panels/SplitPanel";
+import CropPanel from "./panels/CropPanel";
 import SecurityPanel from "./panels/SecurityPanel";
 import OcrPanel from "./panels/OcrPanel";
 import FormPanel from "./panels/FormPanel";
@@ -12,6 +13,8 @@ import ConvertPanel from "./panels/ConvertPanel";
 import EditPanel from "./panels/EditPanel";
 import CompressPanel from "./panels/CompressPanel";
 import BatchPanel from "./panels/BatchPanel";
+import MetadataPanel from "./panels/MetadataPanel";
+import PrintPanel from "./panels/PrintPanel";
 
 export default function TaskPanel() {
   const task = useApp((s) => s.task);
@@ -21,6 +24,7 @@ export default function TaskPanel() {
   const TITLES: Record<Exclude<TaskId, null>, string> = {
     merge: t("合并文档"),
     split: t("拆分文档"),
+    crop: t("页面裁剪"),
     watermark: t("水印"),
     edit: t("内容编辑"),
     security: t("文档安全"),
@@ -30,11 +34,14 @@ export default function TaskPanel() {
     forms: t("表单字段"),
     compress: t("PDF 压缩"),
     batch: t("批量处理"),
+    metadata: t("文档属性"),
+    print: t("打印"),
   };
 
   const DESC: Record<Exclude<TaskId, null>, string> = {
     merge: t("将多个 PDF 按顺序合并为一个文档，可对每个文件选择页码范围。"),
     split: t("按固定页数、自定义范围或书签层级，将文档拆分为多个文件。"),
+    crop: t("在画布上框选要保留的区域，或按统一页边距自动裁切白边。"),
     watermark: t("为页面添加文字或图片水印，支持位置、透明度与平铺。"),
     edit: t("为当前页添加 PDF 注释：高亮、下划线、删除线、便签、自由文本框、矩形标注。"),
     security: t(
@@ -54,6 +61,10 @@ export default function TaskPanel() {
     batch: t(
       "把多个 PDF 文件排成队列依次处理：可选压缩、加密或导出明文副本，统一输出到指定文件夹，支持失败重试。",
     ),
+    metadata: t("编辑文档信息字典（标题、作者、主题、关键词、创建者、生产者），保存后立即写入文档。"),
+    print: t(
+      "通过系统打印对话框打印当前文档：可设置页码范围与是否适应页面；打印机、份数与缩放可在系统对话框中调整。",
+    ),
   };
 
   if (task === null) return null;
@@ -69,6 +80,7 @@ export default function TaskPanel() {
       <div className="body">
         {task === "merge" && <MergePanel />}
         {task === "split" && <SplitPanel />}
+        {task === "crop" && <CropPanel />}
         {task === "watermark" && <WatermarkPanel />}
         {task === "edit" && <EditPanel />}
         {task === "security" && <SecurityPanel />}
@@ -78,8 +90,11 @@ export default function TaskPanel() {
         {task === "forms" && <FormPanel />}
         {task === "compress" && <CompressPanel />}
         {task === "batch" && <BatchPanel />}
+        {task === "metadata" && <MetadataPanel />}
+        {task === "print" && <PrintPanel />}
         {task !== "merge" &&
           task !== "split" &&
+          task !== "crop" &&
           task !== "watermark" &&
           task !== "edit" &&
           task !== "security" &&
@@ -88,7 +103,9 @@ export default function TaskPanel() {
           task !== "ocr" &&
           task !== "forms" &&
           task !== "compress" &&
-          task !== "batch" && (
+          task !== "batch" &&
+          task !== "metadata" &&
+          task !== "print" && (
             <>
               <p className="placeholder">{DESC[task]}</p>
               <p className="placeholder" style={{ marginTop: 12 }}>

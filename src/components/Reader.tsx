@@ -5,7 +5,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { useApp } from "../state/store";
+import { useApp, isDarkTheme } from "../state/store";
 import { renderMarkdown, type TextDocKind } from "../lib/ipc";
 import { useT } from "../i18n";
 
@@ -495,7 +495,7 @@ export default function Reader({ onSave }: { onSave: () => void }) {
             className="reader-frame"
             title={textDoc.fileName}
             sandbox=""
-            srcDoc={wrapHtml(previewHtml || textDoc.html || "", theme === "dark")}
+            srcDoc={wrapHtml(previewHtml || textDoc.html || "", isDarkTheme(theme))}
           />
         </div>
       ) : (
@@ -506,7 +506,7 @@ export default function Reader({ onSave }: { onSave: () => void }) {
           srcDoc={
             textDoc.kind === "html"
               ? (textDoc.html ?? "")
-              : wrapHtml(textDoc.html ?? "", theme === "dark")
+              : wrapHtml(textDoc.html ?? "", isDarkTheme(theme))
           }
         />
       )}

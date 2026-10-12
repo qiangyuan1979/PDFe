@@ -3,11 +3,13 @@ use std::fs;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 
+use lopdf::{Dictionary, Document as LopdfDocument, Object, StringFormat};
 use pdfium_render::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::error::{AppError, AppResult};
+use crate::pages::commit_and_return;
 
 /// 撤销快照栈条数上限。
 const UNDO_LIMIT: usize = 20;
@@ -105,6 +107,21 @@ fn pdfium_library_path() -> Option<std::path::PathBuf> {
 pub(crate) struct DocEntry {
     pub(crate) bytes: Vec<u8>,
     pub(crate) path: Option<std::path::PathBuf>,
+    /// 文档内容指纹：打开时按字节计算一次并保持稳定，用于阅读位置等本地记忆。
+    pub(crate) fingerprint: String,
+}
+
+/// 计算文档内容指纹（FNV-1a 64-bit，16 位十六进制）。
+/// 仅用于本地记忆键（阅读位置等），不承担任何安全用途。
+pub(crate) fn content_fingerprint(bytes: &[u8]) -> String {
+    const OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+    const PRIME: u64 = 0x0000_0100_0000_01b3;
+    let mut hash = OFFSET;
+    for &b in bytes {
+        hash ^= b as u64;
+        hash = hash.wrapping_mul(PRIME);
+    }
+    format!("{hash:016x}")
 }
 
 /// Tauri 托管状态：文档字节表 + 每文档撤销/重做快照栈。
@@ -141,6 +158,8 @@ pub struct DocumentInfo {
     pub file_size_bytes: u64,
     pub page_count: u32,
     pub pages: Vec<PageInfo>,
+    /// 文档内容指纹；用于前端持久化阅读位置等，避免同名同页数文件串位。
+    pub fingerprint: String,
 }
 
 /// 校验字节流可被 PDFium 解析，并返回页数与页面尺寸。
@@ -175,6 +194,7 @@ fn build_info(doc_id: u64, entry: &DocEntry, count: u32, pages: Vec<PageInfo>) -
         file_size_bytes: entry.bytes.len() as u64,
         page_count: count,
         pages,
+        fingerprint: entry.fingerprint.clone(),
     }
 }
 
@@ -190,6 +210,7 @@ pub async fn open_document(
     let (count, pages) = inspect(&bytes, password.as_deref())?;
     let doc_id = state.next_doc_id();
     let entry = DocEntry {
+        fingerprint: content_fingerprint(&bytes),
         bytes,
         path: Some(std::path::PathBuf::from(&path)),
     };
@@ -215,6 +236,175 @@ pub async fn get_metadata(state: State<'_, AppState>, doc_id: u64) -> AppResult<
     let entry = docs.get(&doc_id).ok_or(AppError::NotFound)?;
     let (count, pages) = inspect(&entry.bytes, None)?;
     Ok(build_info(doc_id, entry, count, pages))
+}
+
+/// 文档信息字典（Info）里可编辑的属性集合。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocProperties {
+    pub title: String,
+    pub author: String,
+    pub subject: String,
+    pub keywords: String,
+    pub creator: String,
+    pub producer: String,
+}
+
+/// 把字符串编码为 PDF 文本串对象。
+///
+/// 纯 ASCII 直接按字节写入（PDFDocEncoding 与 ASCII 一致）；含非 ASCII 时按规范
+/// 加 UTF-16BE BOM（`FE FF`）。`StringFormat::Literal` 的 `\` `(` `)` `\r` 会被
+/// lopdf writer 正确转义，故 UTF-16 原始字节写入安全。
+fn encode_pdf_text(s: &str) -> Object {
+    if s.is_ascii() {
+        Object::String(s.as_bytes().to_vec(), StringFormat::Literal)
+    } else {
+        let mut bytes = Vec::with_capacity(2 + s.len() * 2);
+        bytes.extend_from_slice(&[0xFE, 0xFF]);
+        for unit in s.encode_utf16() {
+            bytes.extend_from_slice(&unit.to_be_bytes());
+        }
+        Object::String(bytes, StringFormat::Literal)
+    }
+}
+
+/// 解码 PDF 文本串原始字节为字符串：识别 UTF-16 BE/LE BOM，其余按 UTF-8 容错解码。
+fn decode_pdf_text(bytes: &[u8]) -> String {
+    if bytes.len() >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF {
+        let units: Vec<u16> = bytes[2..]
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|c| u16::from_be_bytes(*c))
+            .collect();
+        String::from_utf16_lossy(&units)
+    } else if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
+        let units: Vec<u16> = bytes[2..]
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|c| u16::from_le_bytes(*c))
+            .collect();
+        String::from_utf16_lossy(&units)
+    } else {
+        String::from_utf8_lossy(bytes).into_owned()
+    }
+}
+
+/// 解析出 trailer 中的 Info 字典（自动解引用）。
+fn info_dict(doc: &LopdfDocument) -> Option<&Dictionary> {
+    doc.trailer.get_deref(b"Info", doc).ok()?.as_dict().ok()
+}
+
+/// 读取文档属性；缺失的字段返回空串。
+fn read_properties(doc: &LopdfDocument) -> DocProperties {
+    let Some(info) = info_dict(doc) else {
+        return DocProperties::default();
+    };
+    let read = |key: &[u8]| -> String {
+        info.get_deref(key, doc)
+            .ok()
+            .and_then(|o| o.as_str().ok())
+            .map(decode_pdf_text)
+            .unwrap_or_default()
+    };
+    DocProperties {
+        title: read(b"Title"),
+        author: read(b"Author"),
+        subject: read(b"Subject"),
+        keywords: read(b"Keywords"),
+        creator: read(b"Creator"),
+        producer: read(b"Producer"),
+    }
+}
+
+/// 写入文档属性：定位（或新建）Info 字典并写回 6 个字段；空值删除对应键。
+fn write_properties(doc: &mut LopdfDocument, props: &DocProperties) -> AppResult<()> {
+    let info_id = match doc.trailer.get(b"Info") {
+        Ok(Object::Reference(id)) => *id,
+        // 内联字典：迁移为间接对象以便原地更新，同时保留已有内容
+        Ok(Object::Dictionary(existing)) => {
+            let id = doc.add_object(existing.clone());
+            doc.trailer.set("Info", Object::Reference(id));
+            id
+        }
+        _ => {
+            let id = doc.add_object(Dictionary::new());
+            doc.trailer.set("Info", Object::Reference(id));
+            id
+        }
+    };
+    let info = doc
+        .get_object_mut(info_id)
+        .map_err(|e| AppError::PdfMetadataFailed {
+            detail: e.to_string(),
+        })?
+        .as_dict_mut()
+        .map_err(|e| AppError::PdfMetadataFailed {
+            detail: e.to_string(),
+        })?;
+    let mut set = |key: &[u8], value: &str| {
+        if value.is_empty() {
+            info.remove(key);
+        } else {
+            info.set(key, encode_pdf_text(value));
+        }
+    };
+    set(b"Title", &props.title);
+    set(b"Author", &props.author);
+    set(b"Subject", &props.subject);
+    set(b"Keywords", &props.keywords);
+    set(b"Creator", &props.creator);
+    set(b"Producer", &props.producer);
+    Ok(())
+}
+
+/// 读取文档信息字典中的可编辑属性（标题 / 作者 / 主题 / 关键词 / 创建者 / 生产者）。
+///
+/// 纯 lopdf 读取，不调用 pdfium，无需闸门。
+#[tauri::command]
+pub async fn get_doc_properties(
+    state: State<'_, AppState>,
+    doc_id: u64,
+) -> AppResult<DocProperties> {
+    let docs = state.docs.lock().unwrap();
+    let entry = docs.get(&doc_id).ok_or(AppError::NotFound)?;
+    let doc = LopdfDocument::load_mem(&entry.bytes).map_err(|e| AppError::PdfMetadataFailed {
+        detail: e.to_string(),
+    })?;
+    Ok(read_properties(&doc))
+}
+
+/// 写入文档信息字典中的可编辑属性，返回刷新后的文档元数据。
+///
+/// 加密文档拒绝写入（直接改 Info 会写入未加密字符串而破坏文件）。
+#[tauri::command]
+pub async fn set_doc_properties(
+    state: State<'_, AppState>,
+    doc_id: u64,
+    properties: DocProperties,
+) -> AppResult<DocumentInfo> {
+    let _gate = pdfium_gate();
+    let new_bytes = {
+        let docs = state.docs.lock().unwrap();
+        let entry = docs.get(&doc_id).ok_or(AppError::NotFound)?;
+        let mut doc = LopdfDocument::load_mem(&entry.bytes).map_err(|e| {
+            AppError::PdfMetadataFailed {
+                detail: e.to_string(),
+            }
+        })?;
+        if doc.trailer.has(b"Encrypt") {
+            return Err(AppError::Security);
+        }
+        write_properties(&mut doc, &properties)?;
+        let mut out = Vec::new();
+        doc.save_to(&mut out).map_err(|e| AppError::PdfMetadataFailed {
+            detail: e.to_string(),
+        })?;
+        out
+    };
+    push_snapshot(&state, doc_id);
+    commit_and_return(&state, doc_id, new_bytes)
 }
 
 /// 保存文档（原子写入：先写临时文件再改名）。
@@ -477,5 +667,85 @@ mod tests {
         push_bounded(&mut stack, vec![1u8; 10], 20, 1);
         assert_eq!(stack.len(), 1);
         assert_eq!(stack[0][0], 1, "保留下来的必须是最新那条");
+    }
+
+    /// PDF 文本串编解码：ASCII / 非 ASCII / 需转义字符均须原样往返。
+    #[test]
+    fn pdf_text_encode_decode_roundtrip() {
+        for s in [
+            "",
+            "Hello, PDFe",
+            "A/B (C) \\ D\r\n",
+            "标题与作者",
+            "日本語のタイトル",
+            "Emoji 😀 混排",
+        ] {
+            let obj = encode_pdf_text(s);
+            let bytes = obj.as_str().unwrap();
+            assert_eq!(decode_pdf_text(bytes), s, "roundtrip failed for {s:?}");
+        }
+    }
+
+    /// 非 ASCII 必须带 UTF-16BE BOM；纯 ASCII 不带 BOM。
+    #[test]
+    fn pdf_text_bom_convention() {
+        assert_eq!(encode_pdf_text("abc").as_str().unwrap(), b"abc");
+        let bytes = encode_pdf_text("中").as_str().unwrap().to_vec();
+        assert_eq!(&bytes[..2], &[0xFE, 0xFF], "非 ASCII 需 UTF-16BE BOM");
+        assert_eq!(&bytes[2..], &[0x4E, 0x2D], "『中』的 UTF-16BE 编码");
+    }
+
+    /// 属性写入 / 读取往返；空值删除对应键。
+    #[test]
+    fn properties_roundtrip_and_empty_removal() {
+        let mut doc = LopdfDocument::new();
+        let props = DocProperties {
+            title: "标题".into(),
+            author: "作者".into(),
+            subject: "主题".into(),
+            keywords: "关键词".into(),
+            creator: "创建者".into(),
+            producer: "生产者".into(),
+        };
+        write_properties(&mut doc, &props).unwrap();
+
+        let read = read_properties(&doc);
+        assert_eq!(read.title, props.title);
+        assert_eq!(read.author, props.author);
+        assert_eq!(read.subject, props.subject);
+        assert_eq!(read.keywords, props.keywords);
+        assert_eq!(read.creator, props.creator);
+        assert_eq!(read.producer, props.producer);
+
+        // 二次写入：空值应移除对应键（而非留下空串）。
+        let partial = DocProperties {
+            title: "".into(),
+            ..props.clone()
+        };
+        write_properties(&mut doc, &partial).unwrap();
+        let read = read_properties(&doc);
+        assert_eq!(read.title, "", "清空后标题应为空");
+        let info = info_dict(&doc).unwrap();
+        assert!(!info.has(b"Title"), "空标题应删除 Title 键");
+        assert!(info.has(b"Author"), "非空字段应保留");
+    }
+
+    /// 写入后经 save_to 序列化 / load_mem 重新解析，属性仍可读回（落盘可用性）。
+    #[test]
+    fn properties_survive_save_and_reload() {
+        let mut doc = LopdfDocument::new();
+        let props = DocProperties {
+            title: "标题".into(),
+            author: "作者".into(),
+            ..Default::default()
+        };
+        write_properties(&mut doc, &props).unwrap();
+
+        let mut out = Vec::new();
+        doc.save_to(&mut out).unwrap();
+        let reloaded = LopdfDocument::load_mem(&out).unwrap();
+        let read = read_properties(&reloaded);
+        assert_eq!(read.title, "标题");
+        assert_eq!(read.author, "作者");
     }
 }

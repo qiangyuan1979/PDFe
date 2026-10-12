@@ -73,8 +73,7 @@ export const CODE_EXTS: string[] = [
 /** 「文本与源码」分组的扩展名（打开对话框用）。 */
 export const TEXT_AND_CODE_EXTS: string[] = [...TEXT_EXTS, ...CODE_EXTS];
 
-/**
- * 取小写扩展名（不含点）。路径分隔符 `\` 与 `/` 都支持。
+/** 取小写扩展名（不含点）。路径分隔符 `\` 与 `/` 都支持。
  * 无扩展名与点开头的隐藏文件（如 `.gitignore`）都返回 `""`。
  */
 export function fileExt(path: string): string {
@@ -82,6 +81,11 @@ export function fileExt(path: string): string {
   const dot = base.lastIndexOf(".");
   if (dot <= 0) return "";
   return base.slice(dot + 1).toLowerCase();
+}
+
+/** 取路径中的文件名（含扩展名）。路径分隔符 `\` 与 `/` 都支持。 */
+export function fileBaseName(path: string): string {
+  return path.replace(/\\/g, "/").split("/").pop() ?? path;
 }
 
 /** 是否交给 PDFium 打开。 */

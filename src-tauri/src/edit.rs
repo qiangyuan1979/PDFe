@@ -273,6 +273,29 @@ pub fn delete_annotation_logic(
     Ok(doc.save_to_bytes()?)
 }
 
+/// 扁平化注释（纯函数版本）：把注释合并进页面内容，合并后无法再单独编辑。
+/// `pages` 为空表示全部页；无注释/表单字段的页返回 FLATTEN_NOTHINGTODO（视为成功）。
+pub fn flatten_annotations_logic(bytes: &[u8], pages: &[u32]) -> AppResult<Vec<u8>> {
+    let pdfium = get_pdfium();
+    let mut doc = load_doc(pdfium, bytes)?;
+    let total = doc.pages().len() as u32;
+    let indices: Vec<u16> = if pages.is_empty() {
+        (0..total)
+            .map(|i| i as u16)
+            .collect()
+    } else {
+        normalize_indices(pages, total)?
+    };
+    {
+        let pages_col = doc.pages_mut();
+        for idx in indices {
+            let mut page = pages_col.get(idx)?;
+            page.flatten()?;
+        }
+    }
+    Ok(doc.save_to_bytes()?)
+}
+
 // ---------- 命令 ----------
 
 #[tauri::command]
@@ -357,6 +380,31 @@ pub async fn clear_annotations(
         doc.save_to_bytes()?
     };
     commit_and_return(&state, doc_id, new_bytes)
+}
+
+/// 扁平化注释到页面内容（防篡改）。`pages` 为空表示全部页。
+#[tauri::command]
+pub async fn flatten_annotations(
+    state: State<'_, AppState>,
+    doc_id: u64,
+    pages: Vec<u32>,
+) -> AppResult<DocumentInfo> {
+    let _gate = crate::document::pdfium_gate();
+    push_snapshot(&state, doc_id);
+    let _pdfium = get_pdfium();
+    let new_bytes = {
+        let docs = state.docs.lock().unwrap();
+        let entry = docs.get(&doc_id).ok_or(AppError::NotFound)?;
+        flatten_annotations_logic(&entry.bytes, &pages)?
+    };
+    commit_and_return(&state, doc_id, new_bytes)
+}
+
+/// 将文本内容（如注释摘要 Markdown）写入用户选定路径。
+#[tauri::command]
+pub fn export_text_file(output_path: String, contents: String) -> AppResult<String> {
+    std::fs::write(&output_path, contents).map_err(AppError::Io)?;
+    Ok(output_path)
 }
 
 #[cfg(test)]

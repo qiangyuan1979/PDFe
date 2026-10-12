@@ -14,6 +14,8 @@ export interface DocumentInfo {
   fileSizeBytes: number;
   pageCount: number;
   pages: PageInfo[];
+  /** 文档内容指纹；用于阅读位置等本地记忆的稳定键。 */
+  fingerprint: string;
 }
 
 /** 后端 AppError 序列化后的形状 */
@@ -175,6 +177,21 @@ export function rotatePages(
   deltaDeg: number,
 ): Promise<DocumentInfo> {
   return invoke<DocumentInfo>("rotate_pages", { docId, pages, deltaDeg });
+}
+
+/** 页面裁切规格：region（归一化裁切框）/ margin（四边统一留白，PDF 点）/ reset（恢复整页）。 */
+export type CropSpec =
+  | { mode: "region"; region: RegionSpec }
+  | { mode: "margin"; margin: number }
+  | { mode: "reset" };
+
+/** 裁切页面；`pages` 为空数组表示全部页。 */
+export function cropPages(
+  docId: number,
+  pages: number[],
+  spec: CropSpec,
+): Promise<DocumentInfo> {
+  return invoke<DocumentInfo>("crop_pages", { docId, pages, spec });
 }
 
 export function deletePages(docId: number, pages: number[]): Promise<DocumentInfo> {
@@ -558,6 +575,14 @@ export function clearAnnotations(docId: number, pages: number[]): Promise<Docume
   return invoke<DocumentInfo>("clear_annotations", { docId, pages });
 }
 
+export function flattenAnnotations(docId: number, pages: number[]): Promise<DocumentInfo> {
+  return invoke<DocumentInfo>("flatten_annotations", { docId, pages });
+}
+
+export function exportTextFile(outputPath: string, contents: string): Promise<string> {
+  return invoke<string>("export_text_file", { outputPath, contents });
+}
+
 // ---------- 文档安全（M6） ----------
 
 export interface SecurityStatus {
@@ -868,6 +893,27 @@ export function listFormFields(docId: number): Promise<FormFieldInfo[]> {
 
 export function setFormFieldValue(docId: number, opts: SetFormFieldOpts): Promise<DocumentInfo> {
   return invoke<DocumentInfo>("set_form_field_value", { docId, opts });
+}
+
+// ---------- 文档属性（v4） ----------
+
+/** 文档信息字典（Info）中的可编辑属性；空串表示该字段未设置。 */
+export interface DocProperties {
+  title: string;
+  author: string;
+  subject: string;
+  keywords: string;
+  creator: string;
+  producer: string;
+}
+
+export function getDocProperties(docId: number): Promise<DocProperties> {
+  return invoke<DocProperties>("get_doc_properties", { docId });
+}
+
+/** 写入文档属性并返回刷新后的文档元数据。加密文档会报 `security`。 */
+export function setDocProperties(docId: number, properties: DocProperties): Promise<DocumentInfo> {
+  return invoke<DocumentInfo>("set_doc_properties", { docId, properties });
 }
 
 // ---------- 二进制渲染 ----------

@@ -47,6 +47,7 @@ fn build_info_from_doc(
     doc: &PdfDocument,
     bytes: &[u8],
     path: Option<PathBuf>,
+    fingerprint: String,
 ) -> AppResult<DocumentInfo> {
     let pages = doc.pages();
     let count = pages.len() as u32;
@@ -71,6 +72,7 @@ fn build_info_from_doc(
         file_size_bytes: bytes.len() as u64,
         page_count: count,
         pages: infos,
+        fingerprint,
     })
 }
 
@@ -84,7 +86,7 @@ pub(crate) fn commit_and_return(
     entry.bytes = new_bytes;
     let pdfium = get_pdfium();
     let doc = load_doc(pdfium, &entry.bytes)?;
-    build_info_from_doc(doc_id, &doc, &entry.bytes, entry.path.clone())
+    build_info_from_doc(doc_id, &doc, &entry.bytes, entry.path.clone(), entry.fingerprint.clone())
 }
 
 fn to_u16(i: u32) -> AppResult<u16> {
@@ -141,6 +143,156 @@ pub async fn rotate_pages(
                 };
                 page.set_rotation(rot);
             }
+        }
+        doc.save_to_bytes()?
+    };
+    commit_and_return(&state, doc_id, new_bytes)
+}
+
+/// 页面裁切规格（前端以 tagged enum 传入，`mode` 为判别字段）。
+///
+/// - `region`：归一化裁切框（0–1，CSS 左上原点），相对「当前可见边界」。
+/// - `margin`：四边统一留白（PDF 点），用于自动裁去白边。
+/// - `reset`：重置为整页 MediaBox。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "mode")]
+pub enum CropSpec {
+    Region { region: crate::edit::RegionSpec },
+    Margin { margin: f32 },
+    Reset,
+}
+
+/// 页面边界（PDF 点，左下原点）。
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct CropBox {
+    pub left: f32,
+    pub bottom: f32,
+    pub right: f32,
+    pub top: f32,
+}
+
+impl CropBox {
+    fn width(&self) -> f32 {
+        self.right - self.left
+    }
+    fn height(&self) -> f32 {
+        self.top - self.bottom
+    }
+}
+
+/// 计算裁切后的边界框。纯函数，不接触 PDFium，可直接单测。
+///
+/// `visible` 为当前可见边界（已设 CropBox 时为其值，否则为 MediaBox）；
+/// `media` 为整页 MediaBox（`reset` 用）。
+pub(crate) fn compute_crop(visible: CropBox, media: CropBox, spec: &CropSpec) -> CropBox {
+    let mut next = match spec {
+        CropSpec::Region { region } => {
+            let w = visible.width();
+            let h = visible.height();
+            let fx0 = region.left.clamp(0.0, 1.0);
+            let fx1 = (region.left + region.width).clamp(0.0, 1.0);
+            let fy0 = region.top.clamp(0.0, 1.0);
+            let fy1 = (region.top + region.height).clamp(0.0, 1.0);
+            CropBox {
+                left: visible.left + fx0 * w,
+                right: visible.left + fx1 * w,
+                // CSS 的 top 向下、PDF 的 top 向上：框顶对应 box_top - fy0*h
+                top: visible.top - fy0 * h,
+                bottom: visible.top - fy1 * h,
+            }
+        }
+        CropSpec::Margin { margin } => {
+            let m = margin.max(0.0);
+            CropBox {
+                left: (visible.left + m).min(visible.right),
+                right: (visible.right - m).max(visible.left),
+                bottom: (visible.bottom + m).min(visible.top),
+                top: (visible.top - m).max(visible.bottom),
+            }
+        }
+        CropSpec::Reset => media,
+    };
+    if next.right < next.left {
+        std::mem::swap(&mut next.left, &mut next.right);
+    }
+    if next.top < next.bottom {
+        std::mem::swap(&mut next.bottom, &mut next.top);
+    }
+    // 退化框（宽或高 < 1pt）向外扩到 1pt，避免出现不可见页
+    const MIN_SIZE: f32 = 1.0;
+    if next.right - next.left < MIN_SIZE {
+        next.right = next.left + MIN_SIZE;
+    }
+    if next.top - next.bottom < MIN_SIZE {
+        next.top = next.bottom + MIN_SIZE;
+    }
+    next
+}
+
+/// 读取页面当前的可见边界与整页 MediaBox。
+fn page_crop_boxes(page: &PdfPage) -> (CropBox, CropBox) {
+    fn box_from_rect(r: &PdfRect) -> CropBox {
+        CropBox {
+            left: r.left().value,
+            bottom: r.bottom().value,
+            right: r.right().value,
+            top: r.top().value,
+        }
+    }
+    // MediaBox 通常存在；缺失时回退到页面尺寸（CropBox 存在时页面尺寸即裁切框）。
+    let media = match page.boundaries().media() {
+        Ok(b) => box_from_rect(&b.bounds),
+        Err(_) => CropBox {
+            left: 0.0,
+            bottom: 0.0,
+            right: page.width().value,
+            top: page.height().value,
+        },
+    };
+    // CropBox 未设置时 FPDFPage_GetCropBox 返回失败，回退 MediaBox。
+    let visible = match page.boundaries().crop() {
+        Ok(b) => box_from_rect(&b.bounds),
+        Err(_) => media,
+    };
+    (visible, media)
+}
+
+/// 裁切页面：按 region / margin 设置裁切框，或 reset 恢复整页。
+/// `pages` 为空表示全部页。
+#[tauri::command]
+pub async fn crop_pages(
+    state: State<'_, AppState>,
+    doc_id: u64,
+    pages: Vec<u32>,
+    spec: CropSpec,
+) -> AppResult<DocumentInfo> {
+    push_snapshot(&state, doc_id);
+    let _gate = crate::document::pdfium_gate();
+    let pdfium = get_pdfium();
+    let new_bytes = {
+        let docs = state.docs.lock().unwrap();
+        let entry = docs.get(&doc_id).ok_or(AppError::NotFound)?;
+        let doc = load_doc(pdfium, &entry.bytes)?;
+        let total = doc.pages().len() as u32;
+        let indices = if pages.is_empty() {
+            (0..total).map(to_u16).collect::<AppResult<Vec<u16>>>()?
+        } else {
+            normalize_indices(&pages, total)?
+        };
+        if indices.is_empty() {
+            return Err(AppError::PageOutOfRange);
+        }
+        let doc_pages = doc.pages();
+        for idx in indices {
+            let mut page = doc_pages.get(idx)?;
+            let (visible, media) = page_crop_boxes(&page);
+            let next = compute_crop(visible, media, &spec);
+            page.boundaries_mut().set_crop(PdfRect::new(
+                PdfPoints::new(next.bottom),
+                PdfPoints::new(next.left),
+                PdfPoints::new(next.top),
+                PdfPoints::new(next.right),
+            ))?;
         }
         doc.save_to_bytes()?
     };
@@ -497,13 +649,14 @@ pub async fn extract_pages(
     }
     let new_doc_id = state.next_doc_id();
     let entry = crate::document::DocEntry {
+        fingerprint: crate::document::content_fingerprint(&new_bytes),
         bytes: new_bytes,
         path: new_path.clone(),
     };
     let info = {
         let pdfium = get_pdfium();
         let doc = load_doc(pdfium, &entry.bytes)?;
-        build_info_from_doc(new_doc_id, &doc, &entry.bytes, entry.path.clone())?
+        build_info_from_doc(new_doc_id, &doc, &entry.bytes, entry.path.clone(), entry.fingerprint.clone())?
     };
     state.docs.lock().unwrap().insert(new_doc_id, entry);
     Ok(info)
@@ -558,13 +711,14 @@ pub async fn merge_documents(
     }
     let new_doc_id = state.next_doc_id();
     let entry = crate::document::DocEntry {
+        fingerprint: crate::document::content_fingerprint(&new_bytes),
         bytes: new_bytes,
         path: path.clone(),
     };
     let info = {
         let pdfium = get_pdfium();
         let doc = load_doc(pdfium, &entry.bytes)?;
-        build_info_from_doc(new_doc_id, &doc, &entry.bytes, entry.path.clone())?
+        build_info_from_doc(new_doc_id, &doc, &entry.bytes, entry.path.clone(), entry.fingerprint.clone())?
     };
     state.docs.lock().unwrap().insert(new_doc_id, entry);
     Ok(info)
@@ -1027,5 +1181,83 @@ mod tests {
             assert!((TEMPLATE_MARGIN..=595.0 - TEMPLATE_MARGIN).contains(x));
             assert!((TEMPLATE_MARGIN..=842.0 - TEMPLATE_MARGIN).contains(y));
         }
+    }
+
+    /// compute_crop: region maps a normalized box onto the visible bounds
+    #[test]
+    fn compute_crop_region_maps_to_visible() {
+        let visible = CropBox {
+            left: 10.0,
+            bottom: 20.0,
+            right: 110.0,
+            top: 220.0,
+        };
+        // 保留左上 50% × 50%（CSS 左上原点）
+        let spec = CropSpec::Region {
+            region: crate::edit::RegionSpec {
+                left: 0.0,
+                top: 0.0,
+                width: 0.5,
+                height: 0.5,
+            },
+        };
+        let out = compute_crop(visible, visible, &spec);
+        assert_eq!(out.left, 10.0);
+        assert_eq!(out.right, 60.0); // 10 + 0.5 * 100
+        assert_eq!(out.top, 220.0); // 220 - 0 * 200
+        assert_eq!(out.bottom, 120.0); // 220 - 0.5 * 200
+    }
+
+    /// compute_crop: margin shrinks every side by the given amount
+    #[test]
+    fn compute_crop_margin_shrinks() {
+        let visible = CropBox {
+            left: 0.0,
+            bottom: 0.0,
+            right: 100.0,
+            top: 200.0,
+        };
+        let out = compute_crop(visible, visible, &CropSpec::Margin { margin: 10.0 });
+        assert_eq!(
+            out,
+            CropBox {
+                left: 10.0,
+                bottom: 10.0,
+                right: 90.0,
+                top: 190.0,
+            }
+        );
+    }
+
+    /// compute_crop: oversized margin cannot collapse the box below 1pt
+    #[test]
+    fn compute_crop_margin_degenerate_min_size() {
+        let visible = CropBox {
+            left: 0.0,
+            bottom: 0.0,
+            right: 100.0,
+            top: 200.0,
+        };
+        let out = compute_crop(visible, visible, &CropSpec::Margin { margin: 500.0 });
+        assert!(out.right - out.left >= 1.0);
+        assert!(out.top - out.bottom >= 1.0);
+    }
+
+    /// compute_crop: reset restores the media box regardless of visible
+    #[test]
+    fn compute_crop_reset_restores_media() {
+        let visible = CropBox {
+            left: 5.0,
+            bottom: 5.0,
+            right: 50.0,
+            top: 50.0,
+        };
+        let media = CropBox {
+            left: 0.0,
+            bottom: 0.0,
+            right: 100.0,
+            top: 200.0,
+        };
+        assert_eq!(compute_crop(visible, media, &CropSpec::Reset), media);
     }
 }

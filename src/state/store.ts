@@ -19,6 +19,7 @@ export type DocKind = "pdf" | "text";
 export type TaskId =
   | "merge"
   | "split"
+  | "crop"
   | "watermark"
   | "edit"
   | "security"
@@ -28,11 +29,71 @@ export type TaskId =
   | "forms"
   | "compress"
   | "batch"
+  | "metadata"
+  | "print"
   | null;
 /** 内容编辑面板的内层页签 */
 export type EditTab = "annot" | "deep";
 /** 深度编辑当前工具：select 不请求画布选区；rewrite/addtext 请求框选；image/scandetect 为纯参数模式 */
 export type DeepEditMode = "select" | "rewrite" | "addtext" | "image" | "scandetect";
+
+/** 实际应用的外观主题（对应 :root[data-theme="..."]） */
+export type ThemeId = "light" | "dark" | "sepia" | "contrast";
+/** 用户偏好：可为「跟随系统」，否则为固定主题 */
+export type ThemePref = "system" | ThemeId;
+
+/** 可选主题预设（labelKey 为中文原文，供 i18n 翻译） */
+export const THEME_PRESETS: { id: ThemeId; labelKey: string }[] = [
+  { id: "light", labelKey: "浅色" },
+  { id: "dark", labelKey: "深色" },
+  { id: "sepia", labelKey: "护眼（暖色）" },
+  { id: "contrast", labelKey: "高对比" },
+];
+
+/** 该主题是否为深色系（决定内嵌 HTML 预览等处的深浅判断） */
+export function isDarkTheme(id: ThemeId): boolean {
+  return id === "dark" || id === "contrast";
+}
+
+function systemTheme(): ThemeId {
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function resolveTheme(pref: ThemePref): ThemeId {
+  return pref === "system" ? systemTheme() : pref;
+}
+
+/** 按强调色亮度自动选前景色（用于 --accent-fg），保证对比度 */
+export function contrastFg(hex: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return "#ffffff";
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 0xff;
+  const g = (n >> 8) & 0xff;
+  const b = n & 0xff;
+  // Rec. 709 相对亮度
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return lum > 0.6 ? "#000000" : "#ffffff";
+}
+
+const THEME_KEY = "pdfe:theme";
+const ACCENT_KEY = "pdfe:accent";
+
+function loadThemePref(): ThemePref {
+  const v = localStorage.getItem(THEME_KEY);
+  if (v === "system" || v === "light" || v === "dark" || v === "sepia" || v === "contrast") {
+    return v;
+  }
+  return "system";
+}
+
+function loadAccent(): string | null {
+  const v = localStorage.getItem(ACCENT_KEY);
+  return v && /^#[0-9a-f]{6}$/i.test(v) ? v : null;
+}
+
+const initialThemePref = loadThemePref();
+const initialAccent = loadAccent();
 
 export interface SearchHit {
   pageIndex: number;
@@ -138,6 +199,8 @@ interface AppState {
   filePath: string | null;
   /** 磁盘文件字节数；来自后端 DocumentInfo.fileSizeBytes。 */
   fileSizeBytes: number;
+  /** 文档内容指纹；来自后端 DocumentInfo.fingerprint，用于阅读位置记忆。 */
+  fingerprint: string;
   pageCount: number;
   pages: PageInfo[];
   dirty: boolean;
@@ -182,10 +245,15 @@ interface AppState {
   annotations: Record<number, AnnotationInfo[]>;
 
   // 主题
-  theme: "light" | "dark";
+  theme: ThemeId;
+  themePref: ThemePref;
+  accent: string | null;
 
   // 语言
   locale: "zh" | "en" | "ja";
+
+  // 最近打开文件（路径，最新在前）
+  recent: string[];
 
   // 缩略图选择
   selectedPages: Set<number>;
@@ -270,8 +338,15 @@ interface AppState {
   setAllAnnotations: (map: Record<number, AnnotationInfo[]>) => void;
   /** 清空所有注释（关闭文档时） */
   clearAnnotations: () => void;
-  setTheme: (t: "light" | "dark") => void;
+  setThemePref: (p: ThemePref) => void;
+  /** 系统深浅色变化时同步（仅在偏好为「跟随系统」时生效）。 */
+  syncSystemTheme: () => void;
+  setAccent: (c: string | null) => void;
   setLocale: (l: "zh" | "en" | "ja") => void;
+  /** 从最近打开列表中移除一个路径（打开失败时自动调用） */
+  removeRecent: (path: string) => void;
+  /** 清空最近打开列表 */
+  clearRecent: () => void;
   toggleSelect: (page: number, ctrl: boolean, shift: boolean) => void;
   clearSelection: () => void;
   markDirty: (b: boolean) => void;
@@ -293,25 +368,49 @@ interface AppState {
   errorToast: (e: unknown) => void;
 }
 
-/** 阅读位置持久化：按文件名+页数作为指纹 */
+/** 阅读位置持久化：按文档内容指纹作键（避免同名同页数文件串位） */
 const POS_PREFIX = "pdfe:pos:";
-export function saveReadingPos(fileName: string, pageCount: number, page: number, scale: number) {
+export function saveReadingPos(fingerprint: string, page: number, scale: number) {
+  if (!fingerprint) return;
   try {
-    localStorage.setItem(POS_PREFIX + `${fileName}:${pageCount}`, JSON.stringify({ page, scale }));
+    localStorage.setItem(POS_PREFIX + fingerprint, JSON.stringify({ page, scale }));
   } catch {
     /* 忽略存储失败 */
   }
 }
-export function loadReadingPos(
-  fileName: string,
-  pageCount: number,
-): { page: number; scale: number } | null {
+export function loadReadingPos(fingerprint: string): { page: number; scale: number } | null {
+  if (!fingerprint) return null;
   try {
-    const raw = localStorage.getItem(POS_PREFIX + `${fileName}:${pageCount}`);
+    const raw = localStorage.getItem(POS_PREFIX + fingerprint);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
+}
+
+/** 最近打开文件列表：持久化文件路径，最新在前 */
+const RECENT_KEY = "pdfe:recent";
+const RECENT_MAX = 10;
+export function loadRecent(): string[] {
+  try {
+    const arr = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+    return Array.isArray(arr) ? arr.filter((p): p is string => typeof p === "string") : [];
+  } catch {
+    return [];
+  }
+}
+function persistRecent(list: string[]) {
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+  } catch {
+    /* 忽略存储失败 */
+  }
+}
+/** 记录一个已打开的路径，返回去重并截断后的新列表 */
+function pushRecent(path: string): string[] {
+  const next = [path, ...loadRecent().filter((p) => p !== path)].slice(0, RECENT_MAX);
+  persistRecent(next);
+  return next;
 }
 
 let toastSeq = 0;
@@ -333,6 +432,7 @@ export const useApp = create<AppState>((set, get) => ({
   fileName: "",
   filePath: null,
   fileSizeBytes: 0,
+  fingerprint: "",
   pageCount: 0,
   pages: [],
   dirty: false,
@@ -374,9 +474,13 @@ export const useApp = create<AppState>((set, get) => ({
   loadingHighlights: new Set(),
   annotations: {},
 
-  theme: window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+  theme: resolveTheme(initialThemePref),
+  themePref: initialThemePref,
+  accent: initialAccent,
 
   locale: (localStorage.getItem("pdfe:locale") as "zh" | "en" | "ja") || "zh",
+
+  recent: loadRecent(),
 
   selectedPages: new Set(),
   thumbFocus: -1,
@@ -424,6 +528,7 @@ export const useApp = create<AppState>((set, get) => ({
       fileName: info.fileName,
       filePath: path,
       fileSizeBytes: info.fileSizeBytes,
+      fingerprint: info.fingerprint,
       pageCount: info.pageCount,
       pages: info.pages,
       dirty: false,
@@ -443,6 +548,7 @@ export const useApp = create<AppState>((set, get) => ({
       removalPreview: null,
       watermarkPreview: null,
       watermarkCustomPos: null,
+      recent: path ? pushRecent(path) : get().recent,
     });
   },
   setTextDoc: (payload, path) => {
@@ -457,6 +563,7 @@ export const useApp = create<AppState>((set, get) => ({
       fileName: payload.fileName,
       filePath: path,
       fileSizeBytes: payload.fileSizeBytes,
+      fingerprint: "",
       pageCount: 0,
       pages: [],
       dirty: false,
@@ -482,6 +589,7 @@ export const useApp = create<AppState>((set, get) => ({
       watermarkCustomPos: null,
       dblClickText: null,
       editTarget: null,
+      recent: path ? pushRecent(path) : get().recent,
       ...exitEditState(),
     });
   },
@@ -495,6 +603,7 @@ export const useApp = create<AppState>((set, get) => ({
       fileName: "",
       filePath: null,
       fileSizeBytes: 0,
+      fingerprint: "",
       pageCount: 0,
       pages: [],
       dirty: false,
@@ -603,10 +712,30 @@ export const useApp = create<AppState>((set, get) => ({
       return { loadingHighlights: next };
     }),
   clearSearchHighlights: () => set({ searchHighlights: {}, loadingHighlights: new Set() }),
-  setTheme: (t) => set({ theme: t }),
+  setThemePref: (p) => {
+    localStorage.setItem(THEME_KEY, p);
+    set({ themePref: p, theme: resolveTheme(p) });
+  },
+  syncSystemTheme: () => {
+    if (get().themePref === "system") set({ theme: systemTheme() });
+  },
+  setAccent: (c) => {
+    if (c) localStorage.setItem(ACCENT_KEY, c);
+    else localStorage.removeItem(ACCENT_KEY);
+    set({ accent: c });
+  },
   setLocale: (l) => {
     localStorage.setItem("pdfe:locale", l);
     set({ locale: l });
+  },
+  removeRecent: (path) => {
+    const next = get().recent.filter((p) => p !== path);
+    persistRecent(next);
+    set({ recent: next });
+  },
+  clearRecent: () => {
+    persistRecent([]);
+    set({ recent: [] });
   },
   toggleSelect: (page, ctrl, shift) => {
     const { selectedPages, thumbFocus } = get();

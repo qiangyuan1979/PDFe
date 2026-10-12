@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { open } from "@tauri-apps/plugin-dialog";
+import { useEffect, useMemo, useState } from "react";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import { useApp } from "../../state/store";
 import { useT } from "../../i18n";
 import {
@@ -16,6 +16,8 @@ import {
   listAnnotations,
   deleteAnnotation,
   clearAnnotations,
+  flattenAnnotations,
+  exportTextFile,
 } from "../../lib/ipc";
 import type { AnnotationInfo, AnnotationKind, ImageObjectInfo } from "../../lib/ipc";
 
@@ -79,28 +81,51 @@ function EditDeepLabel() {
 
 function AnnotationEditor() {
   const docId = useApp((s) => s.docId);
+  const fileName = useApp((s) => s.fileName);
   const currentPage = useApp((s) => s.currentPage);
   const pageCount = useApp((s) => s.pageCount);
   const updatePages = useApp((s) => s.updatePages);
   const markDirty = useApp((s) => s.markDirty);
   const setUndoRedo = useApp((s) => s.setUndoRedo);
-  const setPageAnnotations = useApp((s) => s.setPageAnnotations);
+  const setAllAnnotations = useApp((s) => s.setAllAnnotations);
+  const jumpToPage = useApp((s) => s.jumpToPage);
   const pushToast = useApp((s) => s.pushToast);
   const errorToast = useApp((s) => s.errorToast);
   const t = useT();
 
-  const list: AnnotationInfo[] = useApp((s) => s.annotations[currentPage] ?? NO_ANNOTATIONS);
+  const annotationsMap = useApp((s) => s.annotations);
+  const list: AnnotationInfo[] = annotationsMap[currentPage] ?? NO_ANNOTATIONS;
+
+  // 文档级注释列表：按页码、索引排序。
+  const allAnnots = useMemo(() => {
+    const arr: AnnotationInfo[] = [];
+    for (const key of Object.keys(annotationsMap)) {
+      for (const a of annotationsMap[Number(key)]) arr.push(a);
+    }
+    arr.sort((x, y) => x.pageIndex - y.pageIndex || x.index - y.index);
+    return arr;
+  }, [annotationsMap]);
 
   const [kind, setKind] = useState<AnnotationKind>("highlight");
   const [color, setColor] = useState("#ffeb3b");
   const [contents, setContents] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const reloadPageAnnotations = async () => {
+  const kindLabel = (k: AnnotationKind) => {
+    const found = ANNOT_KINDS.find((x) => x.k === k);
+    return found ? t(found.labelKey) : k;
+  };
+
+  // 全量刷新：一次 IPC 同时更新本页与文档级列表。
+  const reloadAllAnnotations = async () => {
     if (docId === null) return;
     try {
-      const data = await listAnnotations(docId, currentPage);
-      setPageAnnotations(currentPage, data);
+      const data = await listAnnotations(docId, null);
+      const map: Record<number, AnnotationInfo[]> = {};
+      for (const a of data) {
+        (map[a.pageIndex] ??= []).push(a);
+      }
+      setAllAnnotations(map);
     } catch (e) {
       errorToast(e);
     }
@@ -126,10 +151,10 @@ function AnnotationEditor() {
       updatePages(info);
       markDirty(true);
       setUndoRedo(await refreshUndoRedo(docId));
-      const kindLabel = ANNOT_KINDS.find((x) => x.k === kind)?.labelKey ?? "";
-      pushToast("info", t("已添加 {kind}", { kind: t(kindLabel) }));
+      const label = ANNOT_KINDS.find((x) => x.k === kind)?.labelKey ?? "";
+      pushToast("info", t("已添加 {kind}", { kind: t(label) }));
       setContents("");
-      await reloadPageAnnotations();
+      await reloadAllAnnotations();
     } catch (e) {
       errorToast(e);
     } finally {
@@ -145,7 +170,7 @@ function AnnotationEditor() {
       updatePages(info);
       markDirty(true);
       setUndoRedo(await refreshUndoRedo(docId));
-      await reloadPageAnnotations();
+      await reloadAllAnnotations();
     } catch (e) {
       errorToast(e);
     } finally {
@@ -163,7 +188,63 @@ function AnnotationEditor() {
       markDirty(true);
       setUndoRedo(await refreshUndoRedo(docId));
       pushToast("info", t("已清空当前页注释"));
-      await reloadPageAnnotations();
+      await reloadAllAnnotations();
+    } catch (e) {
+      errorToast(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const exportSummary = async () => {
+    if (docId === null) return;
+    if (allAnnots.length === 0) {
+      pushToast("info", t("文档中还没有注释"));
+      return;
+    }
+    try {
+      const lines: string[] = [];
+      lines.push(`# ${t("注释摘要")}`, "");
+      lines.push(`- ${t("文件")}：${fileName}`);
+      lines.push(`- ${t("注释总数")}：${allAnnots.length}`);
+      let lastPage = -1;
+      for (const a of allAnnots) {
+        if (a.pageIndex !== lastPage) {
+          lines.push("", `## ${t("第 {n} 页", { n: a.pageIndex + 1 })}`, "");
+          lastPage = a.pageIndex;
+        }
+        lines.push(`- ${kindLabel(a.kind)} · ${a.color} · ${a.contents || t("（无文本）")}`);
+      }
+      const markdown = `${lines.join("\n")}\n`;
+      const base = (fileName || "document").replace(/\.pdf$/i, "");
+      const target = await save({
+        title: t("选择注释摘要保存位置"),
+        defaultPath: `${base}-annotations.md`,
+        filters: [{ name: t("Markdown 文档"), extensions: ["md"] }],
+      });
+      if (typeof target !== "string") return;
+      await exportTextFile(target, markdown);
+      pushToast("info", t("已导出注释摘要到 {name}", { name: target }));
+    } catch (e) {
+      errorToast(e);
+    }
+  };
+
+  const flatten = async () => {
+    if (docId === null) return;
+    if (allAnnots.length === 0) {
+      pushToast("info", t("文档中还没有注释"));
+      return;
+    }
+    if (!confirm(t("确定扁平化注释？合并后注释将无法再单独编辑。"))) return;
+    setBusy(true);
+    try {
+      const info = await flattenAnnotations(docId, []);
+      updatePages(info);
+      markDirty(true);
+      setUndoRedo(await refreshUndoRedo(docId));
+      pushToast("info", t("已扁平化注释"));
+      await reloadAllAnnotations();
     } catch (e) {
       errorToast(e);
     } finally {
@@ -248,6 +329,38 @@ function AnnotationEditor() {
             >
               ✕
             </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="annot-list-head">
+        <span>{t("全部注释（{n}）", { n: allAnnots.length })}</span>
+        {allAnnots.length > 0 && (
+          <span style={{ display: "flex", gap: 8 }}>
+            <button onClick={exportSummary} disabled={busy}>
+              {t("导出摘要…")}
+            </button>
+            <button onClick={flatten} disabled={busy} style={{ color: "var(--danger)" }}>
+              {t("扁平化注释")}
+            </button>
+          </span>
+        )}
+      </div>
+      <div className="annot-list">
+        {allAnnots.length === 0 && <p className="placeholder">{t("文档中还没有注释")}</p>}
+        {allAnnots.map((a) => (
+          <div
+            key={`${a.pageIndex}-${a.index}`}
+            className="annot-item clickable"
+            onClick={() => jumpToPage(a.pageIndex)}
+            title={t("跳转到第 {n} 页", { n: a.pageIndex + 1 })}
+          >
+            <span className="annot-page">{a.pageIndex + 1}</span>
+            <span className="annot-swatch" style={{ background: a.color }} />
+            <span className="annot-kind">{a.kind}</span>
+            <span className="annot-contents" title={a.contents}>
+              {a.contents || t("（无文本）")}
+            </span>
           </div>
         ))}
       </div>

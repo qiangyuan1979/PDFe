@@ -54,14 +54,26 @@ const en: Record<string, string> = {
   // ---------- 活动栏 ----------
   页面缩略图: "Thumbnails",
   书签: "Bookmarks",
-  切换浅色主题: "Switch to light theme",
-  切换深色主题: "Switch to dark theme",
+  外观: "Appearance",
+  跟随系统: "System",
+  浅色: "Light",
+  深色: "Dark",
+  "护眼（暖色）": "Sepia (warm)",
+  高对比: "High contrast",
+  强调色: "Accent color",
   切换界面语言: "Switch language",
+  最近打开: "Recent",
   // ---------- 左侧面板 ----------
   缩略图: "Thumbnails",
   打开文档后显示缩略图: "Open a document to show thumbnails",
   打开文档后显示书签: "Open a document to show bookmarks",
   文档没有书签: "This document has no bookmarks",
+  添加书签: "Add bookmark",
+  我的书签: "My bookmarks",
+  文档书签: "Document bookmarks",
+  重命名: "Rename",
+  缩进: "Indent",
+  减少缩进: "Outdent",
   "加载中…": "Loading…",
   "（无标题）": "(untitled)",
   // ---------- 密码对话框 ----------
@@ -284,8 +296,39 @@ const en: Record<string, string> = {
   "已添加 {kind}": "Added {kind}",
   "清空当前页（{n} 个注释）？": "Clear {n} annotations on current page?",
   已清空当前页注释: "Cleared annotations on current page",
+  "注释摘要": "Annotation Summary",
+  "文件": "File",
+  "选择注释摘要保存位置": "Choose where to save the annotation summary",
+  "已导出注释摘要到 {name}": "Exported annotation summary to {name}",
+  "文档中还没有注释": "No annotations in this document yet",
+  "全部注释（{n}）": "All annotations ({n})",
+  "跳转到第 {n} 页": "Go to page {n}",
+  "导出摘要…": "Export summary…",
+  "扁平化注释": "Flatten annotations",
+  "确定扁平化注释？合并后注释将无法再单独编辑。":
+    "Flatten annotations? Once merged they can no longer be edited separately.",
+  "已扁平化注释": "Flattened annotations",
   高质量打印: "High-quality printing",
   低质量打印: "Low-quality printing",
+  // ---------- 打印 ----------
+  打印: "Print",
+  "通过系统打印对话框打印当前文档：可设置页码范围与是否适应页面；打印机、份数与缩放可在系统对话框中调整。":
+    "Print the current document via the system print dialog. Set the page range and whether to fit the page; printer, copies, and scaling can be adjusted in the system dialog.",
+  "将调起系统打印对话框，打印机、份数与缩放均在其中设置。":
+    "The system print dialog will open; set the printer, copies, and scaling there.",
+  现有打开密码: "Existing open password",
+  读取打印权限: "Read print permissions",
+  该文档的权限设置禁止打印: "This document's permissions prohibit printing",
+  "文档权限仅允许低质量打印，已自动切换为低质量":
+    "Document permissions allow only low-quality printing; switched to low quality automatically",
+  "页码范围（留空 = 全部，如 1,3,5-7）": "Page range (blank = all, e.g. 1,3,5-7)",
+  全部: "All",
+  打印质量: "Print quality",
+  "高（更清晰）": "High (sharper)",
+  "低（省墨）": "Low (saves ink)",
+  "正在准备打印…": "Preparing to print…",
+  开始打印: "Start printing",
+  已发送到系统打印对话框: "Sent to the system print dialog",
   修改文档内容: "Modify document content",
   抽取文本与图形: "Extract text and graphics",
   添加或修改注释: "Add or modify annotations",
@@ -425,6 +468,19 @@ const en: Record<string, string> = {
   标题: "Title",
   "可选，写入 PDF 元数据": "Optional, written to PDF metadata",
   作者: "Author",
+  主题: "Subject",
+  关键词: "Keywords",
+  创建者: "Creator",
+  生产者: "Producer",
+  属性: "Properties",
+  文档属性: "Document Properties",
+  "编辑文档信息字典（标题、作者、主题、关键词、创建者、生产者），保存后立即写入文档。":
+    "Edit the document information dictionary (title, author, subject, keywords, creator, producer). Changes are written to the document on save.",
+  "编辑文档信息字典。留空的字段会在保存时从文档中移除。":
+    "Edit the document information dictionary. Any field left empty is removed from the document on save.",
+  "需先打开一个 PDF 文档": "Open a PDF document first",
+  "保存属性": "Save Properties",
+  "已更新文档属性": "Document properties updated",
   "支持 EPUB / MOBI / AZW / AZW3 / FB2 / LIT / HTML / RTF / ODT / DOCX / TXT 转换为 PDF。需本机安装 Calibre（含 ebook-convert）。":
     "Supports EPUB/MOBI/AZW/AZW3/FB2/LIT/HTML/RTF/ODT/DOCX/TXT to PDF. Requires Calibre (with ebook-convert) installed.",
   "请先探测 Calibre 并选择源文件": "Please detect Calibre and select a source file first",
@@ -721,6 +777,29 @@ const en: Record<string, string> = {
   "支持 {n}（当前页）与 {total}（总页数）": "Supports {n} (current page) and {total} (total pages)",
   "未选择任何步骤时，将导出明文副本（移除密码与权限）。":
     "With no steps selected, a plain copy is exported (password and permissions removed).",
+  // ---------- 页面裁剪 ----------
+  裁剪: "Crop",
+  页面裁剪: "Crop Pages",
+  "在画布上框选要保留的区域，或按统一页边距自动裁切白边。":
+    "Drag a box on the canvas to keep, or trim margins uniformly.",
+  作用范围: "Scope",
+  全部页: "All pages",
+  当前页: "Current page",
+  自选: "Custom",
+  "🎯 在画布上框选裁切区域": "🎯 Select crop area on canvas",
+  "在画布上拖拽框选要保留的区域，松开鼠标完成。":
+    "Drag on the canvas to select the area to keep, release to finish.",
+  裁切框: "Crop box",
+  "左 {l}%，上 {tp}%，宽 {w}%，高 {h}%": "Left {l}%, Top {tp}%, W {w}%, H {h}%",
+  尚未框选裁切区域: "No crop area selected yet",
+  应用裁切: "Apply crop",
+  已应用裁切: "Crop applied",
+  "统一页边距（PDF 点）": "Uniform margin (PDF points)",
+  按页边距裁切: "Crop by margin",
+  重置整页: "Reset to full page",
+  已重置整页: "Reset to full page",
+  "请输入大于 0 的页边距": "Enter a margin greater than 0",
+  请先在画布上框选裁切区域: "Please select a crop area on the canvas first",
 };
 
 const ja: Record<string, string> = {
@@ -774,14 +853,26 @@ const ja: Record<string, string> = {
   // ---------- アクティビティバー ----------
   页面缩略图: "サムネイル",
   书签: "しおり",
-  切换浅色主题: "ライトテーマに切替",
-  切换深色主题: "ダークテーマに切替",
+  外观: "外観",
+  跟随系统: "システムに従う",
+  浅色: "ライト",
+  深色: "ダーク",
+  "护眼（暖色）": "セピア（暖色）",
+  高对比: "ハイコントラスト",
+  强调色: "アクセントカラー",
   切换界面语言: "言語を切り替え",
+  最近打开: "最近開いたファイル",
   // ---------- 左パネル ----------
   缩略图: "サムネイル",
   打开文档后显示缩略图: "文書を開くとサムネイルが表示されます",
   打开文档后显示书签: "文書を開くとしおりが表示されます",
   文档没有书签: "この文書にしおりはありません",
+  添加书签: "しおりを追加",
+  我的书签: "マイしおり",
+  文档书签: "文書のしおり",
+  重命名: "名前を変更",
+  缩进: "インデント",
+  减少缩进: "インデント解除",
   "加载中…": "読込中…",
   "（无标题）": "（無題）",
   // ---------- パスワードダイアログ ----------
@@ -1005,8 +1096,39 @@ const ja: Record<string, string> = {
   "已添加 {kind}": "{kind} を追加しました",
   "清空当前页（{n} 个注释）？": "現在のページの{n}個の注釈をクリアしますか？",
   已清空当前页注释: "現在のページの注釈をクリアしました",
+  "注释摘要": "注釈サマリー",
+  "文件": "ファイル",
+  "选择注释摘要保存位置": "注釈サマリーの保存先を選択",
+  "已导出注释摘要到 {name}": "注釈サマリーを{name}にエクスポートしました",
+  "文档中还没有注释": "このドキュメントに注釈はまだありません",
+  "全部注释（{n}）": "すべての注釈（{n}）",
+  "跳转到第 {n} 页": "{n}ページ目へ移動",
+  "导出摘要…": "サマリーをエクスポート…",
+  "扁平化注释": "注釈をフラット化",
+  "确定扁平化注释？合并后注释将无法再单独编辑。":
+    "注釈をフラット化しますか？統合後は個別に編集できなくなります。",
+  "已扁平化注释": "注釈をフラット化しました",
   高质量打印: "高品質印刷",
   低质量打印: "低品質印刷",
+  // ---------- 印刷 ----------
+  打印: "印刷",
+  "通过系统打印对话框打印当前文档：可设置页码范围与是否适应页面；打印机、份数与缩放可在系统对话框中调整。":
+    "システムの印刷ダイアログで現在の文書を印刷します。ページ範囲とページに合わせるかを設定でき、プリンター・部数・拡大縮小はシステムダイアログで調整します。",
+  "将调起系统打印对话框，打印机、份数与缩放均在其中设置。":
+    "システムの印刷ダイアログを開きます。プリンター・部数・拡大縮小はそこで設定します。",
+  现有打开密码: "既存の開封パスワード",
+  读取打印权限: "印刷権限を読み取る",
+  该文档的权限设置禁止打印: "この文書の権限設定では印刷が禁止されています",
+  "文档权限仅允许低质量打印，已自动切换为低质量":
+    "文書権限では低品質印刷のみ許可されています。自動的に低品質へ切り替えました",
+  "页码范围（留空 = 全部，如 1,3,5-7）": "ページ範囲（空欄 = すべて、例 1,3,5-7）",
+  全部: "すべて",
+  打印质量: "印刷品質",
+  "高（更清晰）": "高（より鮮明）",
+  "低（省墨）": "低（インク節約）",
+  "正在准备打印…": "印刷を準備しています…",
+  开始打印: "印刷を開始",
+  已发送到系统打印对话框: "システムの印刷ダイアログへ送信しました",
   修改文档内容: "文書内容の変更",
   抽取文本与图形: "テキストとグラフィックの抽出",
   添加或修改注释: "注釈の追加または変更",
@@ -1117,6 +1239,19 @@ const ja: Record<string, string> = {
   标题: "タイトル",
   "可选，写入 PDF 元数据": "任意、PDFメタデータに書き込まれます",
   作者: "作者",
+  主题: "サブジェクト",
+  关键词: "キーワード",
+  创建者: "作成者",
+  生产者: "生成元",
+  属性: "プロパティ",
+  文档属性: "文書のプロパティ",
+  "编辑文档信息字典（标题、作者、主题、关键词、创建者、生产者），保存后立即写入文档。":
+    "文書情報辞書（タイトル・作者・サブジェクト・キーワード・作成者・生成元）を編集します。保存すると直ちに文書に書き込まれます。",
+  "编辑文档信息字典。留空的字段会在保存时从文档中移除。":
+    "文書情報辞書を編集します。空欄の項目は保存時に文書から削除されます。",
+  "需先打开一个 PDF 文档": "先にPDF文書を開いてください",
+  "保存属性": "プロパティを保存",
+  "已更新文档属性": "文書プロパティを更新しました",
   "支持 EPUB / MOBI / AZW / AZW3 / FB2 / LIT / HTML / RTF / ODT / DOCX / TXT 转换为 PDF。需本机安装 Calibre（含 ebook-convert）。":
     "EPUB/MOBI/AZW/AZW3/FB2/LIT/HTML/RTF/ODT/DOCX/TXT をPDFに変換可。要Calibre（ebook-convert込み）。",
   "请先探测 Calibre 并选择源文件": "先にCalibreを検出し、ソースファイルを選択してください",
@@ -1441,6 +1576,29 @@ const ja: Record<string, string> = {
   "支持 {n}（当前页）与 {total}（总页数）": "{n}（現在のページ）と {total}（総ページ数）に対応",
   "未选择任何步骤时，将导出明文副本（移除密码与权限）。":
     "ステップを何も選択しない場合、平文コピーを書き出します（パスワードと権限を解除）。",
+  // ---------- ページ切り抜き ----------
+  裁剪: "切り抜き",
+  页面裁剪: "ページ切り抜き",
+  "在画布上框选要保留的区域，或按统一页边距自动裁切白边。":
+    "キャンバス上で残す範囲をドラッグするか、余白を一律に切り詰めます。",
+  作用范围: "適用範囲",
+  全部页: "全ページ",
+  当前页: "現在のページ",
+  自选: "指定",
+  "🎯 在画布上框选裁切区域": "🎯 キャンバス上で切り抜き範囲を選択",
+  "在画布上拖拽框选要保留的区域，松开鼠标完成。":
+    "キャンバス上で残す範囲をドラッグし、マウスを離すと確定します。",
+  裁切框: "切り抜き枠",
+  "左 {l}%，上 {tp}%，宽 {w}%，高 {h}%": "左 {l}%、上 {tp}%、幅 {w}%、高さ {h}%",
+  尚未框选裁切区域: "切り抜き範囲が未選択です",
+  应用裁切: "切り抜きを適用",
+  已应用裁切: "切り抜きを適用しました",
+  "统一页边距（PDF 点）": "一律の余白（PDF ポイント）",
+  按页边距裁切: "余白で切り抜く",
+  重置整页: "ページ全体に戻す",
+  已重置整页: "ページ全体に戻しました",
+  "请输入大于 0 的页边距": "0 より大きい余白を入力してください",
+  请先在画布上框选裁切区域: "先にキャンバス上で切り抜き範囲を選択してください",
 };
 
 export type Locale = "zh" | "en" | "ja";
@@ -1521,6 +1679,8 @@ const errZh: Record<string, string> = {
     "设置 {kind} 类型的字段值暂不支持：pdfium-render 0.8.37 没有公开 API 可修改此类字段。",
   // ------ 原生阅读（v2） ------
   file_too_large: "文件过大，无法打开（上限 {limitMb} MB）",
+  // ------ 文档属性（v0.4.0） ------
+  pdf_metadata_failed: "读写文档属性失败：{detail}",
 };
 
 /** 开发期断言：errZh 字典必须与后端 AppError code 一一对应。
@@ -1578,6 +1738,7 @@ const KNOWN_ERROR_CODES = new Set([
   "pdf_compress_failed",
   "form_field_write_unsupported",
   "file_too_large",
+  "pdf_metadata_failed",
 ]);
 
 if (import.meta.env?.DEV) {

@@ -141,6 +141,10 @@ pub enum AppError {
     // ------ 压缩（v2） ------
     #[error("Failed to compress PDF: {detail}")]
     PdfCompressFailed { detail: String },
+
+    // ------ 文档属性（v4） ------
+    #[error("Failed to read or write document properties: {detail}")]
+    PdfMetadataFailed { detail: String },
 }
 
 impl From<pdfium_render::prelude::PdfiumError> for AppError {
@@ -223,6 +227,7 @@ impl AppError {
             AppError::PdfEncryptFailed { .. } => "pdf_encrypt_failed",
             AppError::FileTooLarge { .. } => "file_too_large",
             AppError::PdfCompressFailed { .. } => "pdf_compress_failed",
+            AppError::PdfMetadataFailed { .. } => "pdf_metadata_failed",
         }
     }
 
@@ -274,6 +279,9 @@ impl AppError {
                 m.insert("detail".into(), detail.clone());
             }
             AppError::PdfCompressFailed { detail } => {
+                m.insert("detail".into(), detail.clone());
+            }
+            AppError::PdfMetadataFailed { detail } => {
                 m.insert("detail".into(), detail.clone());
             }
             AppError::FormFieldWriteUnsupported { kind } => {
@@ -415,6 +423,10 @@ mod tests {
             (
                 "pdf_compress_failed",
                 AppError::PdfCompressFailed { detail: "d".into() },
+            ),
+            (
+                "pdf_metadata_failed",
+                AppError::PdfMetadataFailed { detail: "d".into() },
             ),
         ];
 

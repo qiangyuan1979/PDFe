@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
-import { useApp, saveReadingPos, loadReadingPos } from "./state/store";
+import { useApp, saveReadingPos, loadReadingPos, contrastFg } from "./state/store";
 import {
   closeDocument,
   isApiError,
@@ -11,18 +11,24 @@ import {
   saveTextDoc,
   undoDocument,
   redoDocument,
-  getBookmarks,
   refreshUndoRedo,
   listAnnotations,
 } from "./lib/ipc";
 import type { AnnotationInfo } from "./lib/ipc";
-import type { BookmarkNode } from "./lib/ipc";
-import { isPdfPath, MARKDOWN_EXTS, HTML_EXTS, EPUB_EXTS, TEXT_AND_CODE_EXTS } from "./lib/docPath";
+import {
+  isPdfPath,
+  fileBaseName,
+  MARKDOWN_EXTS,
+  HTML_EXTS,
+  EPUB_EXTS,
+  TEXT_AND_CODE_EXTS,
+} from "./lib/docPath";
 import Toolbar from "./components/Toolbar";
 import Rail from "./components/Rail";
 import Canvas from "./components/Canvas";
 import Reader from "./components/Reader";
 import ThumbnailPanel from "./components/ThumbnailPanel";
+import BookmarkPanel from "./components/BookmarkPanel";
 import SearchPanel from "./components/SearchPanel";
 import TaskPanel from "./components/TaskPanel";
 import StatusBar from "./components/StatusBar";
@@ -32,66 +38,11 @@ import { useT, translateError } from "./i18n";
 import { useShortcuts } from "./hooks/useShortcuts";
 import "./index.css";
 
-function BookmarkTree({
-  nodes,
-  onJump,
-}: {
-  nodes: BookmarkNode[];
-  onJump: (page: number) => void;
-}) {
-  const t = useT();
-  if (nodes.length === 0) {
-    return <div style={{ padding: 16, color: "var(--fg-dim)" }}>{t("文档没有书签")}</div>;
-  }
-  return (
-    <div className="bookmark-tree">
-      {nodes.map((node, i) => (
-        <div key={i}>
-          <div
-            className="bookmark-item"
-            style={{ paddingLeft: 8 + node.level * 16 }}
-            onClick={() => onJump(node.pageIndex)}
-          >
-            {node.title || t("（无标题）")}
-          </div>
-          {node.children.length > 0 && <BookmarkTree nodes={node.children} onJump={onJump} />}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function LeftPanel() {
   const leftTab = useApp((s) => s.leftTab);
   const setLeftTab = useApp((s) => s.setLeftTab);
   const hasDoc = useApp((s) => s.docId !== null);
-  const docId = useApp((s) => s.docId);
-  const bookmarks = useApp((s) => s.bookmarks);
-  const bookmarksLoading = useApp((s) => s.bookmarksLoading);
-  const setBookmarks = useApp((s) => s.setBookmarks);
-  const setBookmarksLoading = useApp((s) => s.setBookmarksLoading);
-  const jumpToPage = useApp((s) => s.jumpToPage);
-  const errorToast = useApp((s) => s.errorToast);
   const t = useT();
-
-  useEffect(() => {
-    if (docId === null || leftTab !== "bookmarks") return;
-    let cancelled = false;
-    setBookmarksLoading(true);
-    getBookmarks(docId)
-      .then((b) => {
-        if (!cancelled) setBookmarks(b);
-      })
-      .catch((e) => {
-        if (!cancelled) errorToast(e);
-      })
-      .finally(() => {
-        if (!cancelled) setBookmarksLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [docId, leftTab]);
 
   return (
     <aside className="left">
@@ -116,11 +67,7 @@ function LeftPanel() {
           <div style={{ padding: 16, color: "var(--fg-dim)" }}>{t("打开文档后显示缩略图")}</div>
         )
       ) : hasDoc ? (
-        bookmarksLoading ? (
-          <div style={{ padding: 16, color: "var(--fg-dim)" }}>{t("加载中…")}</div>
-        ) : (
-          <BookmarkTree nodes={bookmarks} onJump={(p) => jumpToPage(p, true)} />
-        )
+        <BookmarkPanel />
       ) : (
         <div style={{ padding: 16, color: "var(--fg-dim)" }}>{t("打开文档后显示书签")}</div>
       )}
@@ -143,7 +90,7 @@ function PasswordDialog({ path, onDone }: { path: string; onDone: () => void }) 
     try {
       const info = await openDocument(path, pwd);
       setDoc(info, path);
-      const pos = loadReadingPos(info.fileName, info.pageCount);
+      const pos = loadReadingPos(info.fingerprint);
       if (pos) useApp.getState().jumpToPage(pos.page);
       pushToast("info", t("已打开 {name}（{n} 页）", { name: info.fileName, n: info.pageCount }));
       onDone();
@@ -207,14 +154,16 @@ function PasswordDialog({ path, onDone }: { path: string; onDone: () => void }) 
 
 export default function App() {
   const theme = useApp((s) => s.theme);
+  const accent = useApp((s) => s.accent);
   const docId = useApp((s) => s.docId);
   const docKind = useApp((s) => s.docKind);
   const leftVisible = useApp((s) => s.leftVisible);
-  const fileName = useApp((s) => s.fileName);
-  const pageCount = useApp((s) => s.pageCount);
+  const fingerprint = useApp((s) => s.fingerprint);
   const loading = useApp((s) => s.loading);
   const toasts = useApp((s) => s.toasts);
   const dismissToast = useApp((s) => s.dismissToast);
+  const recent = useApp((s) => s.recent);
+  const clearRecent = useApp((s) => s.clearRecent);
   const t = useT();
 
   const [pwdPath, setPwdPath] = useState<string | null>(null);
@@ -224,23 +173,34 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
+  // 自定义强调色应用到 CSS 变量；null 时移除覆盖，回落到主题默认
+  useEffect(() => {
+    const root = document.documentElement.style;
+    if (accent) {
+      root.setProperty("--accent", accent);
+      root.setProperty("--accent-fg", contrastFg(accent));
+    } else {
+      root.removeProperty("--accent");
+      root.removeProperty("--accent-fg");
+    }
+  }, [accent]);
+
   // 跟随系统深浅色
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = (e: MediaQueryListEvent) =>
-      useApp.getState().setTheme(e.matches ? "dark" : "light");
+    const onChange = () => useApp.getState().syncSystemTheme();
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
   const openPdf = useCallback(
-    async (path: string) => {
+    async (path: string): Promise<boolean> => {
       const st = useApp.getState();
       st.setLoading(true);
       try {
         const info = await openDocument(path);
         st.setDoc(info, path);
-        const pos = loadReadingPos(info.fileName, info.pageCount);
+        const pos = loadReadingPos(info.fingerprint);
         if (pos) st.jumpToPage(pos.page);
         st.pushToast(
           "info",
@@ -262,12 +222,15 @@ export default function App() {
           .catch(() => {
             /* 注释加载失败静默忽略 */
           });
+        return true;
       } catch (e) {
         if (isApiError(e) && e.code === "password") {
+          // 加密文档：文件本身有效，交由密码弹窗继续打开
           setPwdPath(path);
-        } else {
-          st.errorToast(e);
+          return true;
         }
+        st.errorToast(e);
+        return false;
       } finally {
         useApp.getState().setLoading(false);
       }
@@ -277,10 +240,9 @@ export default function App() {
 
   /** 统一入口：.pdf 走 PDFium，其余交给原生阅读（reader.rs 会拒绝不支持的格式）。 */
   const doOpen = useCallback(
-    async (path: string) => {
+    async (path: string): Promise<boolean> => {
       if (isPdfPath(path)) {
-        await openPdf(path);
-        return;
+        return openPdf(path);
       }
       const st = useApp.getState();
       st.setLoading(true);
@@ -288,13 +250,24 @@ export default function App() {
         const payload = await readTextDoc(path);
         st.setTextDoc(payload, path);
         st.pushToast("info", t("已打开 {name}", { name: payload.fileName }));
+        return true;
       } catch (e) {
         st.errorToast(e);
+        return false;
       } finally {
         useApp.getState().setLoading(false);
       }
     },
     [openPdf, t],
+  );
+
+  /** 打开最近文件：失败（如文件已删除/移动）时自动从列表移除 */
+  const onOpenRecent = useCallback(
+    async (path: string) => {
+      const ok = await doOpen(path);
+      if (!ok) useApp.getState().removeRecent(path);
+    },
+    [doOpen],
   );
 
   const onOpenFile = useCallback(async () => {
@@ -411,14 +384,14 @@ export default function App() {
     if (docId === null) return;
     const t = setInterval(() => {
       const s = useApp.getState();
-      saveReadingPos(s.fileName, s.pageCount, s.currentPage, s.scale);
+      saveReadingPos(s.fingerprint, s.currentPage, s.scale);
     }, 2000);
     return () => {
       clearInterval(t);
       const s = useApp.getState();
-      saveReadingPos(s.fileName, s.pageCount, s.currentPage, s.scale);
+      saveReadingPos(s.fingerprint, s.currentPage, s.scale);
     };
-  }, [docId, fileName, pageCount]);
+  }, [docId, fingerprint]);
 
   // 关闭文档释放内存
   useEffect(() => {
@@ -448,6 +421,28 @@ export default function App() {
               {loading ? t("加载中…") : t("打开文件")}
             </button>
             <span style={{ fontSize: 12 }}>{t("Ctrl+O 打开 · Ctrl+F 搜索 · Ctrl+滚轮缩放")}</span>
+            {recent.length > 0 && (
+              <div className="recent">
+                <div className="recent-head">
+                  <span>{t("最近打开")}</span>
+                  <button onClick={clearRecent}>{t("清除")}</button>
+                </div>
+                <div className="recent-list">
+                  {recent.map((p) => (
+                    <button
+                      key={p}
+                      className="recent-item"
+                      title={p}
+                      disabled={loading}
+                      onClick={() => onOpenRecent(p)}
+                    >
+                      <span className="recent-name">{fileBaseName(p)}</span>
+                      <span className="recent-path">{p}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

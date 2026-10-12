@@ -11,7 +11,7 @@
 | 项 | 值 |
 |----|----|
 | 产品名 | PDFe（`productName` = `pdfe`，窗口标题 `PDFe`） |
-| 版本 | 当前 `0.3.0`（`tauri.conf.json` / `Cargo.toml` / `package.json` / `package-lock.json` 同步，MSIX 补齐为 `0.3.0.0`）；**已上架版本 `0.2.0.0`**（2026-10-06 认证通过并发布），`0.3.0.0` 已出未签名包（`PDFe_0.3.0_x64.msix`）、已于 2026-10-12 提交认证（Submission 6，状态 `Update in certification`），待认证通过后发布 |
+| 版本 | 源码当前 `0.4.0`（`tauri.conf.json` / `Cargo.toml` / `package.json` / `package-lock.json` 同步，`Cargo.lock` 随构建更新；MSIX 出包时补齐为 `0.4.0.0`，**尚未出包**）；**已上架版本 `0.2.0.0`**（2026-10-06 认证通过并发布），`0.3.0.0` 已出未签名包（`PDFe_0.3.0_x64.msix`）、已于 2026-10-12 提交认证（Submission 6，状态 `Update in certification`），待认证通过后发布；0.4.0 功能开发已完成（详见 §3.4.3 / §5.4） |
 | 标识 | `com.konnyyuan.pdfe` |
 | MSIX Identity | 清单为占位符 `__IDENTITY_NAME__` / `__PUBLISHER__` / `__PUBLISHER_DISPLAY_NAME__`；本地侧载默认注入 `konnyyuan.pdfe` / `CN=PDFe Local Test` / `PDFe`，上架注入 Partner Center 分配值 `CCB6DC78.PDFe` / `CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F` / `老袁不圆润`（见 §4） |
 | 包系列名 PFN | `CCB6DC78.PDFe_hmyrrnnxy08dw`（本机从 Store 安装实测包全名 `CCB6DC78.PDFe_0.1.0.0_x64__hmyrrnnxy08dw`；本地侧载测试的旧包系列为 `konnyyuan.pdfe_6cgrzvqajzfpg`，两者互不影响、可并存） |
@@ -488,6 +488,8 @@ System requirements: Windows 10 version 1809 or later (x64).
 #### 3.4.3 「此版本中的新增功能」文案（0.4.0）
 
 > **状态：规划中，文案待功能冻结后定稿。** 下列为拟涵盖功能要点，取自 [实施计划 v0.4.0 章节](superpowers/plans/2026-09-18-implementation-plan.md)。0.4.0 需待 0.3.0 认证通过并发布后方可提交（Store 硬约束：更新必须提升版本号，且同时只允许一个在认证中的提交）。定稿时按实际落地功能裁剪，并核对 ≤1500 字符。
+>
+> **2026-10-12 进度注记（实际落地范围）**：0.4.0 功能开发已完成。已交付：打印（当前文档/页码范围）、书签管理（增/改/删 + 层级）、注释增强（列表/定位/摘要导出/扁平化）、页面裁剪（页边距/框选区域）、**最近打开文件列表**、可更换外观（主题预设 + 自定义强调色 + 持久化）、元数据编辑、日语界面回归。**未纳入本轮**：**多文档标签页**、**表单非文本字段（ComboBox/ListBox/RadioButton）写入**。故下方草案中「多标签与最近文件」「表单能力完善」两处与现状不符，定稿时须按上述实际范围裁剪改写。
 
 - **zh-CN**（Partner Center 中文一览）——**要点草案，非定稿**：
 
@@ -630,12 +632,12 @@ System requirements: Windows 10 version 1809 or later (x64).
 
 > ⚠️ 本轮（本仓库侧）只能完成到「出未签名包 + 文案 + 提交清单」；**上传与「提交认证」需在 Partner Center 由账号持有人操作**（仓库内无 Partner Center 凭据/自动化脚本）。提交后包二进制不得再改动。
 
-### 5.4 0.4.0 更新包提交清单（规划中，未开始）
+### 5.4 0.4.0 更新包提交清单（功能开发完成；出包与提交待 0.3.0 认证通过）
 
 > **前置约束**：0.3.0（`Submission 6`）认证通过并发布后方可新建 0.4.0 提交。更新硬约束同 §5.2/§5.3：必须**提升版本号**（`0.4.0 > 0.3.0`），且**同时只允许一个在认证中的提交**。功能范围与任务分解见 [实施计划 v0.4.0 章节](superpowers/plans/2026-09-18-implementation-plan.md)，商店文案见 §3.4.3。
 
-- [ ] 版本升至 `0.4.0`（`package.json` / `package-lock.json` / `Cargo.toml` / `tauri.conf.json` 四处同步，`Cargo.lock` 随构建更新），MSIX 补齐为 `0.4.0.0`
-- [ ] 校验：`npm run build` 通过；`cargo test -- --test-threads=1` 全绿
+- [x] 版本升至 `0.4.0`（`package.json` / `package-lock.json` / `Cargo.toml` / `tauri.conf.json` 四处同步，`Cargo.lock` 随构建更新），MSIX 补齐为 `0.4.0.0`（出包时自动注入）
+- [x] 校验：`npm run build` 通过；`cargo test -- --test-threads=1` 全绿（2026-10-12：build 成功、45 前端单测通过、`cargo test` 183 通过、`cargo clippy` 零告警）
 - [ ] 出未签名上架包（沿用 §5.3 命令，`-Ocr` 视需要保留，产物路径 `src-tauri\target\msix\PDFe_0.4.0_x64.msix`）：
 
       ```powershell
@@ -650,4 +652,4 @@ System requirements: Windows 10 version 1809 or later (x64).
 - [ ] `提交选项`（`runFullTrust` 说明，沿用 §4 短版）/ `隐私政策 URL` / `价格和可用性` 沿用上轮，逐页确认 Incomplete 清零 → 点 `提交认证`
 - [ ] 认证通过并发布后回填 §0「已上架版本」为 `0.4.0.0`
 
-> **状态（2026-10-12）**：本节为规划占位，尚未开始；功能开发需另获授权后按实施计划的执行顺序推进。
+> **状态（2026-10-12）**：0.4.0 功能开发已完成，源码已升至 `0.4.0`（四处同步、`Cargo.lock` 已更新），build / 单测 / clippy 校验全绿；商店文案 §3.4.3 仍为草案（含未落地项，待按实际范围定稿）。**出未签名包与 Partner Center 提交尚待 0.3.0（`Submission 6`）认证通过并发布后执行**；提交/推送/出包需另行授权。
