@@ -11,7 +11,7 @@
 | 项 | 值 |
 |----|----|
 | 产品名 | PDFe（`productName` = `pdfe`，窗口标题 `PDFe`） |
-| 版本 | 源码当前 `0.4.0`（`tauri.conf.json` / `Cargo.toml` / `package.json` / `package-lock.json` 同步，`Cargo.lock` 随构建更新；MSIX 出包时补齐为 `0.4.0.0`，**尚未出包**）；**已上架版本 `0.2.0.0`**（2026-10-06 认证通过并发布），`0.3.0.0` 已出未签名包（`PDFe_0.3.0_x64.msix`）、已于 2026-10-12 提交认证（Submission 6，状态 `Update in certification`），待认证通过后发布；0.4.0 功能开发已完成（详见 §3.4.3 / §5.4） |
+| 版本 | 源码当前 `0.4.0`（`tauri.conf.json` / `Cargo.toml` / `package.json` / `package-lock.json` 同步，`Cargo.lock` 随构建更新；MSIX 出包已补齐为 `0.4.0.0`，未签名包 `PDFe_0.4.0_x64.msix` 已出、2026-10-13）；**已上架版本 `0.2.0.0`**（2026-10-06 认证通过并发布），`0.3.0.0` 已出未签名包（`PDFe_0.3.0_x64.msix`）、已于 2026-10-12 提交认证（Submission 6，状态 `Update in certification`），待认证通过后发布；0.4.0 功能开发已完成（详见 §3.4.3 / §5.4） |
 | 标识 | `com.konnyyuan.pdfe` |
 | MSIX Identity | 清单为占位符 `__IDENTITY_NAME__` / `__PUBLISHER__` / `__PUBLISHER_DISPLAY_NAME__`；本地侧载默认注入 `konnyyuan.pdfe` / `CN=PDFe Local Test` / `PDFe`，上架注入 Partner Center 分配值 `CCB6DC78.PDFe` / `CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F` / `老袁不圆润`（见 §4） |
 | 包系列名 PFN | `CCB6DC78.PDFe_hmyrrnnxy08dw`（本机从 Store 安装实测包全名 `CCB6DC78.PDFe_0.1.0.0_x64__hmyrrnnxy08dw`；本地侧载测试的旧包系列为 `konnyyuan.pdfe_6cgrzvqajzfpg`，两者互不影响、可并存） |
@@ -632,24 +632,25 @@ System requirements: Windows 10 version 1809 or later (x64).
 
 > ⚠️ 本轮（本仓库侧）只能完成到「出未签名包 + 文案 + 提交清单」；**上传与「提交认证」需在 Partner Center 由账号持有人操作**（仓库内无 Partner Center 凭据/自动化脚本）。提交后包二进制不得再改动。
 
-### 5.4 0.4.0 更新包提交清单（功能开发完成；出包与提交待 0.3.0 认证通过）
+### 5.4 0.4.0 更新包提交清单（未签名包已出并自检通过；提交待 0.3.0 认证通过）
 
 > **前置约束**：0.3.0（`Submission 6`）认证通过并发布后方可新建 0.4.0 提交。更新硬约束同 §5.2/§5.3：必须**提升版本号**（`0.4.0 > 0.3.0`），且**同时只允许一个在认证中的提交**。功能范围与任务分解见 [实施计划 v0.4.0 章节](superpowers/plans/2026-09-18-implementation-plan.md)，商店文案见 §3.4.3。
 
 - [x] 版本升至 `0.4.0`（`package.json` / `package-lock.json` / `Cargo.toml` / `tauri.conf.json` 四处同步，`Cargo.lock` 随构建更新），MSIX 补齐为 `0.4.0.0`（出包时自动注入）
 - [x] 校验：`npm run build` 通过；`cargo test -- --test-threads=1` 全绿（2026-10-12：build 成功、45 前端单测通过、`cargo test` 183 通过、`cargo clippy` 零告警）
-- [ ] 出未签名上架包（沿用 §5.3 命令，`-Ocr` 视需要保留，产物路径 `src-tauri\target\msix\PDFe_0.4.0_x64.msix`）：
+- [x] 出未签名上架包（沿用 §5.3 命令，`-Ocr` 视需要保留，产物路径 `src-tauri\target\msix\PDFe_0.4.0_x64.msix`）：
 
       ```powershell
       npm run prepare:ocr
       powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-msix.ps1 -Ocr -Sign None -IdentityName CCB6DC78.PDFe -Publisher "CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F" -PublisherDisplayName "老袁不圆润"
       ```
 
-      - [ ] 自检 ② 条全过：`layout\pdfe.exe` 字节内含 `assets/index-`（非 dev 坏包）✓；`Get-AuthenticodeSignature` = `NotSigned` ✓
-      - [ ] 清单核对：`Identity/@Name`=`CCB6DC78.PDFe`、`Identity/@Publisher`=`CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F`、`PublisherDisplayName`=`老袁不圆润`、`Version`=`0.4.0.0`，无残留占位符 ✓
+      - [x] 自检 ② 条全过：`layout\pdfe.exe` 字节内含 `assets/index-`（非 dev 坏包）✓；`Get-AuthenticodeSignature` = `NotSigned` ✓
+      - [x] 清单核对：`Identity/@Name`=`CCB6DC78.PDFe`、`Identity/@Publisher`=`CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F`、`PublisherDisplayName`=`老袁不圆润`、`Version`=`0.4.0.0`，无残留占位符 ✓
+      - 产物 `src-tauri\target\msix\PDFe_0.4.0_x64.msix`：**16,481,208 字节**（较 0.3.0 的 16,438,946 字节 +约 41 KB），SHA256 `F648C2C3C4DF012CB28F91E00826338700C82430575258E44AAD36D392EAE308`，`Get-AuthenticodeSignature` = **NotSigned**（2026-10-13 出包，`layout\pdfe.exe` 8,935,848 字节含 `assets/index-`）
 - [ ] Partner Center → 新建提交 → 上传上述 `PDFe_0.4.0_x64.msix`（若本地侧载自测覆写了同名文件，按上行命令重出未签名副本再传；切勿传签名后的同名文件）
 - [ ] `此版本中的新增功能` 两语言填 §3.4.3 定稿文案（定稿前按实际落地功能裁剪并核对 ≤1500 字符）
 - [ ] `提交选项`（`runFullTrust` 说明，沿用 §4 短版）/ `隐私政策 URL` / `价格和可用性` 沿用上轮，逐页确认 Incomplete 清零 → 点 `提交认证`
 - [ ] 认证通过并发布后回填 §0「已上架版本」为 `0.4.0.0`
 
-> **状态（2026-10-12）**：0.4.0 功能开发已完成，源码已升至 `0.4.0`（四处同步、`Cargo.lock` 已更新），build / 单测 / clippy 校验全绿；商店文案 §3.4.3 仍为草案（含未落地项，待按实际范围定稿）。**出未签名包与 Partner Center 提交尚待 0.3.0（`Submission 6`）认证通过并发布后执行**；提交/推送/出包需另行授权。
+> **状态（2026-10-13）**：0.4.0 功能开发已完成，源码已升至 `0.4.0`（四处同步、`Cargo.lock` 已更新），build / 单测 / clippy 校验全绿；**未签名上架包已出并通过出包后自检**（`PDFe_0.4.0_x64.msix`，16,481,208 字节，SHA256 `F648C2C3…`，`NotSigned`）。商店文案 §3.4.3 仍为草案（含未落地项，待按实际范围定稿）。**Partner Center 提交尚待 0.3.0（`Submission 6`）认证通过并发布后执行**，且需另行授权。
