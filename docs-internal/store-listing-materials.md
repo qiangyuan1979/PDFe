@@ -11,7 +11,7 @@
 | 项 | 值 |
 |----|----|
 | 产品名 | PDFe（`productName` = `pdfe`，窗口标题 `PDFe`） |
-| 版本 | 源码当前 `0.4.0`（`tauri.conf.json` / `Cargo.toml` / `package.json` / `package-lock.json` 同步，`Cargo.lock` 随构建更新；MSIX 出包已补齐为 `0.4.0.0`，未签名包 `PDFe_0.4.0_x64.msix` 已出、2026-10-13）；**已上架版本 `0.2.0.0`**（2026-10-06 认证通过并发布），`0.3.0.0` 已出未签名包（`PDFe_0.3.0_x64.msix`）、已于 2026-10-12 提交认证（Submission 6，状态 `Update in certification`），待认证通过后发布；0.4.0 功能开发已完成（详见 §3.4.3 / §5.4） |
+| 版本 | 源码当前 `0.4.0`（`tauri.conf.json` / `Cargo.toml` / `package.json` / `package-lock.json` 同步，`Cargo.lock` 随构建更新；MSIX 出包已补齐为 `0.4.0.0`，未签名包 `PDFe_0.4.0_x64.msix` 已出、2026-10-13）；**已上架版本 `0.2.0.0`**（2026-10-06 认证通过并发布）；`0.3.0.0` 已出未签名包（`PDFe_0.3.0_x64.msix`）并于 2026-10-12 提交认证（Submission 6），**2026-10-13 认证未通过（Attention needed，三项违规，详见 §5.3）**，故改用**发布路径 B：撤销 Submission 6、不发布 0.3.0，三项修复并入 0.4.0 直接提交**；0.4.0 功能开发已完成，并已于 2026-10-14 按新配色（紫罗兰→品红）重出未签名包 `PDFe_0.4.0_x64.msix`（16,508,920 字节，详见 §3.4.3 / §5.4） |
 | 标识 | `com.konnyyuan.pdfe` |
 | MSIX Identity | 清单为占位符 `__IDENTITY_NAME__` / `__PUBLISHER__` / `__PUBLISHER_DISPLAY_NAME__`；本地侧载默认注入 `konnyyuan.pdfe` / `CN=PDFe Local Test` / `PDFe`，上架注入 Partner Center 分配值 `CCB6DC78.PDFe` / `CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F` / `老袁不圆润`（见 §4） |
 | 包系列名 PFN | `CCB6DC78.PDFe_hmyrrnnxy08dw`（本机从 Store 安装实测包全名 `CCB6DC78.PDFe_0.1.0.0_x64__hmyrrnnxy08dw`；本地侧载测试的旧包系列为 `konnyyuan.pdfe_6cgrzvqajzfpg`，两者互不影响、可并存） |
@@ -28,9 +28,9 @@
 
 ## 1. 图标资产
 
-### 1.1 包内磁贴（已就绪，无需改动）
+### 1.1 包内磁贴（2026-10-13 因认证整改换新 logo，2026-10-14 换紫罗兰→品红配色重出，见 §5.3.1）
 
-`src-tauri/icons/` 下 Windows 磁贴图标已由 Tauri 生成，实测像素如下：
+`src-tauri/icons/` 下 Windows 磁贴图标已由 Tauri 生成（`npx tauri icon` 从 1024×1024 新源图重出；`Wide310x150Logo.png` 因 Tauri 不产出该尺寸，另由脚本程序化缩放生成），实测像素如下：
 
 | 文件 | 实测尺寸 |
 |------|----------|
@@ -50,8 +50,8 @@
 
 | 资产 | 规格 | 状态 |
 |------|------|------|
-| 1:1 应用磁贴图标 | PNG，**300×300** | **已产出**——`docs/store-listing/StoreLogo-300x300.png`（实测 300×300，14.5 KB，由 `icon.png` 512×512 双三次缩放） |
-| 16:9 超级英雄图 | PNG，1920×1080（或 3840×2160） | **已产出**——`docs/store-listing/Hero-1920x1080.png`（实测 1920×1080，898 KB）与 `Hero-3840x2160.png`（实测 3840×2160，2.1 MB）。由 System.Drawing 程序生成的抽象渐变图：深海军蓝→品牌蓝斜向底色 + 柔和径向光晕 + 流光带 + 细颗粒 + 暗角；**无文字、无应用 UI、非图库照片**，色相全部落在 `#0067c0`/`#4cc2ff` 同色系 |
+| 1:1 应用磁贴图标 | PNG，**300×300** | **已产出**——`docs/store-listing/StoreLogo-300x300.png`（实测 300×300，22.5 KB，2026-10-14 由 1024×1024 源图经 System.Drawing `HighQualityBicubic` 缩放，紫罗兰→品红新配色） |
+| 16:9 超级英雄图 | PNG，1920×1080（或 3840×2160） | **已产出**——`docs/store-listing/Hero-1920x1080.png`（实测 1920×1080，1.2 MB）与 `Hero-3840x2160.png`（实测 3840×2160，2.8 MB）。由 System.Drawing 程序生成的抽象渐变图：深紫罗兰→品红斜向底色（`#2A0A47`→`#7C3AED`→`#EC4899`）+ 柔和径向光晕 + 流光滑带 + 细颗粒 + 暗角；**无文字、无应用 UI、非图库照片**，2026-10-14 换用与 logo 同色系的紫罗兰→品红（原为深海军蓝→品牌蓝 `#0067c0`/`#4cc2ff`） |
 
 注意：**不要**把包内 50×50 的 `StoreLogo.png` 当一览图上传，会明显模糊。
 
@@ -306,7 +306,7 @@ $dst.Dispose(); $src.Dispose()
 
 字段限制（来自 Partner Center 一览文档）：说明必填 ≤10,000 字符；简短说明上限 1000、最佳 <270；产品功能最多 20 条、每条 ≤200 字符；短标题 ≤50；排序标题／语音标题 ≤255；「此版本中的新增功能」≤1500（**首次提交留空**）。
 
-**实测字符数（按 Unicode 码点计，含段内换行、不含末尾换行）**：简短说明 中 75 / EN 236（均 <270）；说明 中 778 / EN 2035（≤10,000）；产品功能 中 10 条最长 55、EN 10 条最长 155（各 10 条，共 20 条 ≤20，每条 ≤200）；短标题 4 / 排序标题 22 / 语音标题 4（≤255）。**全部达标**。
+**实测字符数（按 Unicode 码点计，含段内换行、不含末尾换行）**：简短说明 中 75 / EN 236（均 <270）；说明 中 858 / EN 2148（≤10,000）；产品功能 中 10 条最长 55、EN 10 条最长 155（各 10 条，共 20 条 ≤20，每条 ≤200）；短标题 4 / 排序标题 22 / 语音标题 4（≤255）。**全部达标**。
 
 ### 3.1 简短说明
 
@@ -320,9 +320,13 @@ $dst.Dispose(); $src.Dispose()
 
 ### 3.2 说明（必填）
 
+> **首行即依赖披露**（Microsoft Store 政策 10.2.4.1 Security – Software Dependencies）：中英说明均把「依赖 Microsoft Visual C++ 运行库（Microsoft C++ Redistributable）」放在**最前两行**内，与正文之间空一行。
+
 **中**：
 
 ```text
+本应用依赖 Microsoft Visual C++ 运行库（Microsoft C++ Redistributable），通常已随 Windows 预装。
+
 PDFe 是一款面向 Windows 的轻量 PDF 阅读与编辑工具，基于 PDFium 渲染，启动快、内存占用低，所有处理都在本机完成——文档不会上传到任何服务器。
 
 阅读
@@ -361,6 +365,8 @@ Ctrl+1/2/3 视图切换 · Ctrl+Shift+L 语言 · Ctrl+Shift+T 主题 · F1 帮�
 **EN**：
 
 ```text
+This app depends on the Microsoft Visual C++ Redistributable, which is normally already installed with Windows.
+
 PDFe is a lightweight PDF reader and editor for Windows, built on PDFium for fast startup and low memory use. Everything runs locally on your PC — your documents are never uploaded.
 
 READ
@@ -487,7 +493,7 @@ System requirements: Windows 10 version 1809 or later (x64).
 
 #### 3.4.3 「此版本中的新增功能」文案（0.4.0）
 
-> **状态：规划中，文案待功能冻结后定稿。** 下列为拟涵盖功能要点，取自 [实施计划 v0.4.0 章节](superpowers/plans/2026-09-18-implementation-plan.md)。0.4.0 需待 0.3.0 认证通过并发布后方可提交（Store 硬约束：更新必须提升版本号，且同时只允许一个在认证中的提交）。定稿时按实际落地功能裁剪，并核对 ≤1500 字符。
+> **状态：规划中，文案待功能冻结后定稿。** 下列为拟涵盖功能要点，取自 [实施计划 v0.4.0 章节](superpowers/plans/2026-09-18-implementation-plan.md)。**发布路径 B 下可直接提交**：0.3.0（`Submission 6`）认证未通过并将撤销，0.4.0 于已上架 0.2.0 基础上提交即可（更新硬约束：必须提升版本号 `0.4.0 > 0.2.0`，且同时只允许一个在认证中的提交 → 须先撤销 `Submission 6`，见 §5.4）。定稿时按实际落地功能裁剪，并核对 ≤1500 字符。
 >
 > **2026-10-12 进度注记（实际落地范围）**：0.4.0 功能开发已完成。已交付：打印（当前文档/页码范围）、书签管理（增/改/删 + 层级）、注释增强（列表/定位/摘要导出/扁平化）、页面裁剪（页边距/框选区域）、**最近打开文件列表**、可更换外观（主题预设 + 自定义强调色 + 持久化）、元数据编辑、日语界面回归。**未纳入本轮**：**多文档标签页**、**表单非文本字段（ComboBox/ListBox/RadioButton）写入**。故下方草案中「多标签与最近文件」「表单能力完善」两处与现状不符，定稿时须按上述实际范围裁剪改写。
 
@@ -608,11 +614,13 @@ System requirements: Windows 10 version 1809 or later (x64).
 
 > **2026-10-10 复核**：Partner Center submissions API 实测仅剩 `Submission 5`（releaseNumber 5，线上包 `PDFe_0.2.0_x64.msix` v0.2.0.0）。10/10 因上下文误判误建的草稿 `Submission 6`（同为 v0.2.0.0）已删除，**未做重复提交**（Store 硬约束：更新必须提升版本号，同版本会被拒）。
 
-### 5.3 0.3.0 更新包提交清单（已提交认证，认证中）
+### 5.3 0.3.0 更新包提交清单（认证未通过 · 已按发布路径 B 撤销）
 
 > 0.2.0 已上架，可新建提交。更新硬约束同 §5.2：必须**提升版本号**（`0.3.0 > 0.2.0`），且**同时只允许一个在认证中的提交**。本版首次随包附带 OCR 运行期依赖（`-Ocr`），包体明显增大属预期。
 >
-> **2026-10-12 状态**：`Submission 6` 已于当日提交认证，当前状态 `Update in certification`；待认证通过并发布后方可再新建下一提交（0.4.0）。
+> **2026-10-12 状态**：`Submission 6` 已于当日提交认证，状态 `Update in certification`。
+>
+> **2026-10-13 结论**：认证**未通过（Attention needed）**——审查报告对 `PDFe_0.3.0_x64.msix` 列出三项违规。经评估改为**发布路径 B**：**撤销 `Submission 6`、放弃发布 0.3.0，把三项修复并入已构建的 0.4.0 直接提交**（0.3.0 不出现在商店）。详见 §5.3.1。
 
 - [x] 版本升至 `0.3.0`（`package.json` / `package-lock.json` / `Cargo.toml` / `tauri.conf.json` 四处同步，`Cargo.lock` 随构建更新），MSIX 补齐为 `0.3.0.0`
 - [x] 出未签名上架包（含 OCR）：
@@ -628,13 +636,28 @@ System requirements: Windows 10 version 1809 or later (x64).
 - [x] Partner Center → 新建提交（`Submission 6`）→ 上传上述 `PDFe_0.3.0_x64.msix`（若本地侧载自测覆写了同名文件，按上行命令重出未签名副本再传；切勿传签名后的同名文件）
 - [x] `此版本中的新增功能` 两语言填 §3.4.2 文案（**2026-10-12**：先 `Cancel certification` 使提交转为可编辑，再于 zh-CN 一览填入 316 字符文案并重新提交）
 - [x] `提交选项`（`runFullTrust` 说明，沿用 §4 短版）/ `隐私政策 URL` / `价格和可用性` 沿用上轮，逐页确认 Incomplete 清零 → 点 `提交认证`（**2026-10-12 已提交**，状态 `Update in certification`）
-- [ ] 认证通过并发布后回填 §0「已上架版本」为 `0.3.0.0`（认证中，待发布）
+- [ ] ~~认证通过并发布后回填 §0「已上架版本」为 `0.3.0.0`~~ → **作废**：认证未通过，改用发布路径 B（不发布 0.3.0）
 
 > ⚠️ 本轮（本仓库侧）只能完成到「出未签名包 + 文案 + 提交清单」；**上传与「提交认证」需在 Partner Center 由账号持有人操作**（仓库内无 Partner Center 凭据/自动化脚本）。提交后包二进制不得再改动。
 
-### 5.4 0.4.0 更新包提交清单（未签名包已出并自检通过；提交待 0.3.0 认证通过）
+#### 5.3.1 认证结果与整改（2026-10-13）
 
-> **前置约束**：0.3.0（`Submission 6`）认证通过并发布后方可新建 0.4.0 提交。更新硬约束同 §5.2/§5.3：必须**提升版本号**（`0.4.0 > 0.3.0`），且**同时只允许一个在认证中的提交**。功能范围与任务分解见 [实施计划 v0.4.0 章节](superpowers/plans/2026-09-18-implementation-plan.md)，商店文案见 §3.4.3。
+**审查结论**：`Attention needed`（未通过）。报告对象 `PDFe_0.3.0_x64.msix`（`Submission 6`），Product ID `9PC0GZ78MFC41`，发布者 `老袁不圆润`，Review completed 2026-10-13，测试设备 Microsoft Surface Laptop。三项违规：
+
+| 政策 | 违规描述 | 归因 | 整改 |
+|------|----------|------|------|
+| **10.1.1.11 On Device Tiles** | `Product tiles cannot include imagery from a product that is not published by you`（Package with Violation: `PDFe_0.3.0_x64.msix`） | 包内 6 张磁贴（`StoreLogo` / `Square44x44` / `Square71x71` / `Square150x150` / `Square310x310` / `Wide310x150`）为同一个「黄/青双弧互锁 + 两圆点」logo；该图形自 M0 骨架提交 `c7ec8ff` 起存在，仓库**无来源/授权记录**，无法证明为自有原创 | **全部替换为一枚 100% 原创的图标**：System.Drawing 程序化绘制「**紫罗兰→品红**渐变圆角方块（`#8B5CF6`→`#EC4899`，对角）+ 打开的书册（两页白纸 + 深紫 `#3B0764` 书行）」。已用 `npx tauri icon` 从 1024×1024 源图重出 `src-tauri/icons/` 全套；`Wide310x150Logo.png`（tauri icon 不产出）与一览 `docs/store-listing/StoreLogo-300x300.png` 另行缩放生成。见 §1.1 / §1.2。（2026-10-14 因原始海军蓝→品牌蓝配色不够亮眼，**同款书册图形换用紫罗兰→品红配色**并重出全套，见 §5.4）|
+| **10.2.4.1 Security – Software Dependencies** | `Undisclosed software: Microsoft C++ Redistributable` → `Please update the description and resubmit` | 包内**无** `msvcp140.dll` / `vcruntime140.dll`，Rust MSVC 目标产物动态链接 VC++ 运行库 → 依赖系统预装的 Microsoft C++ Redistributable，但商店说明未披露 | 在说明**最前两行**加入依赖披露（中/英），见 §3.2 首行 |
+| **10.7 Localization** | 一览信息未本地化为目标语言（Chinese） | 仓库文案中/英/日齐全，问题在 Partner Center 一览的语言设置/字段 | Partner Center 侧把一览主语言设为**中文**并补全 zh-CN 字段（§3 各节中文文案）——**账号持有人操作** |
+
+**发布路径 B 的 Partner Center 动作（需账号持有人执行）**：
+1. 打开 `Submission 6`（0.3.0）→ `Cancel certification`（若仍在认证中）或撤回，使其**不发布**；
+2. 按 §3.2（首行依赖披露）与 §3.3 更新一览文案，主语言设为中文；
+3. 按 §5.4 上传 `PDFe_0.4.0_x64.msix`（含新图标）并提交认证。
+
+### 5.4 0.4.0 更新包提交清单（发布路径 B：承接 0.3.0 三项整改，直接提交）
+
+> **前置约束（发布路径 B）**：0.3.0（`Submission 6`）认证未通过，将**撤销且不发布**（见 §5.3.1）；因此 0.4.0 **不再等待 0.3.0 通过**，直接在已上架的 0.2.0 之后提交。更新硬约束同 §5.2/§5.3：必须**提升版本号**（`0.4.0 > 0.2.0`），且**同时只允许一个在认证中的提交**（须先撤销 `Submission 6`）。**三项认证整改并入本版**：①换新原创图标（政策 10.1.1.11）、②说明首行加 VC++ 依赖披露（政策 10.2.4.1）、③一览主语言设中文（政策 10.7）——详见 §5.3.1。功能范围与任务分解见 [实施计划 v0.4.0 章节](superpowers/plans/2026-09-18-implementation-plan.md)，商店文案见 §3.4.3。
 
 - [x] 版本升至 `0.4.0`（`package.json` / `package-lock.json` / `Cargo.toml` / `tauri.conf.json` 四处同步，`Cargo.lock` 随构建更新），MSIX 补齐为 `0.4.0.0`（出包时自动注入）
 - [x] 校验：`npm run build` 通过；`cargo test -- --test-threads=1` 全绿（2026-10-12：build 成功、45 前端单测通过、`cargo test` 183 通过、`cargo clippy` 零告警）
@@ -647,13 +670,25 @@ System requirements: Windows 10 version 1809 or later (x64).
 
       - [x] 自检 ② 条全过：`layout\pdfe.exe` 字节内含 `assets/index-`（非 dev 坏包）✓；`Get-AuthenticodeSignature` = `NotSigned` ✓
       - [x] 清单核对：`Identity/@Name`=`CCB6DC78.PDFe`、`Identity/@Publisher`=`CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F`、`PublisherDisplayName`=`老袁不圆润`、`Version`=`0.4.0.0`，无残留占位符 ✓
-      - 产物 `src-tauri\target\msix\PDFe_0.4.0_x64.msix`：**16,481,208 字节**（较 0.3.0 的 16,438,946 字节 +约 41 KB），SHA256 `F648C2C3C4DF012CB28F91E00826338700C82430575258E44AAD36D392EAE308`，`Get-AuthenticodeSignature` = **NotSigned**（2026-10-13 出包，`layout\pdfe.exe` 8,935,848 字节含 `assets/index-`）
+      - 产物（**首出 · 旧图标**，已被下方「换新图标重出」覆盖，勿用）`src-tauri\target\msix\PDFe_0.4.0_x64.msix`：16,481,208 字节，SHA256 `F648C2C3…`，`NotSigned`，`layout\pdfe.exe` 8,935,848 字节
 - [x] 本地侧载自测（2026-10-13，自签名包 `-Sign SelfSigned`，复用证书 `CN=PDFe Local Test`）：安装成功（`konnyyuan.pdfe_0.4.0.0_x64__6cgrzvqajzfpg`，与商店族不同、可并存）；启动冒烟通过（进程 `pdfe` 存活、窗口 `PDFe`、`Responding=True`、RAM ≈29 MB）
 - [x] **渲染依赖验证（已安装包本身上）**：启动后模块含 `tesseract55.dll`/`leptonica-1.87.0.dll` 而**无** `pdfium.dll`（确认懒绑定）；`Ctrl+O` 打开样例 `src-tauri\tests\fixtures\sample.pdf`（2 页）后进程模块**新增 `pdfium.dll`** → PDFium 渲染链路在包内可用
 - [x] **OCR 依赖验证（同一份打包 payload `target\msix\layout`）**：`tesseract55.dll` + `leptonica` 随进程加载；驱动 OCR 面板（eng / 300 DPI）返回「已识别 4 个词（页 1）：Hello · PDFe · Page · 1」→ `tessdata\eng.traineddata` 生效、Tesseract 离线识别可用。注：已安装包无法开启 WebView2 可访问性开关，UI 自动化读不到其内容，故 OCR **功能**回归在同一份二进制的 layout 上完成；渲染则在已安装包本身上验证
+- [x] **换新图标重出 0.4.0 包**（§5.3.1 · 政策 10.1.1.11 整改）：`src-tauri/icons/` 全套磁贴已由新「书册」logo 重出（见 §1.1），因此**必须完整重建**（不可 `-SkipBuild`——要让 exe 内嵌新 `icon.ico`，并把新磁贴打进 `Assets\`），命令同上：
+
+      - [x] 自检 ② 条全过：`layout\pdfe.exe` 9,358,848 字节、字节内含 `assets/index-` ✓；`Get-AuthenticodeSignature` = `NotSigned` ✓
+      - [x] 清单核对：`CCB6DC78.PDFe` / `CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F` / `老袁不圆润` / `0.4.0.0`，无残留占位符 ✓
+      - [x] 解包核对包内 `Assets\` 6 张磁贴（`StoreLogo` / `Square44x44` / `Square71x71` / `Square150x150` / `Square310x310` / `Wide310x150`）SHA256 与 `src-tauri/icons/` **逐一相同**（均为新 logo）✓
+      - 产物（**已被下方 2026-10-14 换色重出覆盖，勿用**）`src-tauri\target\msix\PDFe_0.4.0_x64.msix`：16,509,573 字节，SHA256 `1872B1C5311CF505FD6C134F38A5A3EB551FDD8216CB0F02636810BC24DA3003`，`Get-AuthenticodeSignature` = **NotSigned**（2026-10-13 重出）。
+- [x] **换紫罗兰→品红配色重出 0.4.0 包**（2026-10-14）：因原始「海军蓝→品牌蓝」配色不够亮眼，**同款书册图形换用紫罗兰→品红**（`#8B5CF6`→`#EC4899`，书行 `#3B0764`），`src-tauri/icons/` 全套磁贴 + `Wide310x150Logo.png` + 一览 `docs/store-listing/StoreLogo-300x300.png` + 16:9 超级英雄图 `Hero-1920x1080.png`/`Hero-3840x2160.png` 全部重出（见 §1.1 / §1.2）；因换了 `icon.ico` 与磁贴，按上行命令**完整重建**（未加 `-SkipBuild`）：
+  - [x] 自检 ② 条全过：`layout\pdfe.exe` 9,358,848 字节、字节内含 `assets/index-` ✓；`Get-AuthenticodeSignature` = `NotSigned` ✓
+  - [x] 清单核对：`CCB6DC78.PDFe` / `CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F` / `老袁不圆润` / `0.4.0.0`，无残留占位符 ✓
+  - [x] 解包核对包内 `Assets\` 6 张磁贴 SHA256 与 `src-tauri/icons/` **逐一相同**（均为新紫/品红配色）✓
+  - 产物 `src-tauri\target\msix\PDFe_0.4.0_x64.msix`：**16,508,920 字节**，SHA256 `278C2DC2FC4B0DC0C8A66B460CB6BAAF6FB817598AEAADCE49C1FAB2B93C111A`，`Get-AuthenticodeSignature` = **NotSigned**（2026-10-14 重出）。因仅替换图标配色、代码与依赖零改动，上方侧载 / 渲染 / OCR 验证结论继续适用。
+- [x] 出包自检 ③ 条全过（2026-10-14）：`layout\pdfe.exe` 9,358,848 字节、字节内含 `assets/index-` ✓；`Get-AuthenticodeSignature` = `NotSigned` ✓；清单字段 `CCB6DC78.PDFe` / `CN=D7439EB2-4E51-48CF-A6CB-58843AEEF25F` / `老袁不圆润` / `0.4.0.0`、无残留占位符 ✓
 - [ ] Partner Center → 新建提交 → 上传上述 `PDFe_0.4.0_x64.msix`（若本地侧载自测覆写了同名文件，按上行命令重出未签名副本再传；切勿传签名后的同名文件）
 - [ ] `此版本中的新增功能` 两语言填 §3.4.3 定稿文案（定稿前按实际落地功能裁剪并核对 ≤1500 字符）
 - [ ] `提交选项`（`runFullTrust` 说明，沿用 §4 短版）/ `隐私政策 URL` / `价格和可用性` 沿用上轮，逐页确认 Incomplete 清零 → 点 `提交认证`
 - [ ] 认证通过并发布后回填 §0「已上架版本」为 `0.4.0.0`
 
-> **状态（2026-10-13）**：0.4.0 功能开发已完成，源码已升至 `0.4.0`（四处同步、`Cargo.lock` 已更新），build / 单测 / clippy 校验全绿；**未签名上架包已出并通过出包后自检**（`PDFe_0.4.0_x64.msix`，16,481,208 字节，SHA256 `F648C2C3…`，`NotSigned`）；**本轮已追加本地侧载自测与渲染 / OCR 依赖验证，均通过**（渲染在已安装包本身验证：打开样例 PDF 后进程加载 `pdfium.dll`；OCR 功能在同一份 payload 上验证：eng 识别出 4 个词）。商店文案 §3.4.3 仍为草案（含未落地项，待按实际范围定稿）。**Partner Center 提交尚待 0.3.0（`Submission 6`）认证通过并发布后执行**，且需另行授权。
+> **状态（2026-10-14）**：0.4.0 功能开发已完成，源码已升至 `0.4.0`（四处同步、`Cargo.lock` 已更新），build / 单测 / clippy 校验全绿；**因 0.3.0 认证未通过（§5.3.1 三项违规），已改走发布路径 B——三项整改全部并入本版**：①换新原创图标（§1.1：全套磁贴 + 一览 `StoreLogo-300x300.png` 已替换；2026-10-14 进一步把配色从海军蓝→品牌蓝换成**紫罗兰→品红**并重出全套）②说明首行加 VC++ 依赖披露（§3.2 中/英）③一览主语言设中文（Partner Center 侧，待账号持有人执行）。**已按新配色完整重建并重出未签名上架包 `PDFe_0.4.0_x64.msix`（16,508,920 字节，SHA256 `278C2DC2…`，`NotSigned`，2026-10-14 重出），出包后自检 + 包内 `Assets\` 与 `src-tauri/icons` 逐一比对均通过**；本地侧载自测与渲染 / OCR 依赖验证（在此前 payload 上完成，仅换图标不影响结论）亦通过。商店文案 §3.4.3 仍为草案（含未落地项，待按实际范围定稿）。**Partner Center 提交须先撤销 `Submission 6`，再上传本包并提交认证**，且需另行授权。
