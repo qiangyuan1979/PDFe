@@ -13,6 +13,7 @@ import {
   redoDocument,
   refreshUndoRedo,
   listAnnotations,
+  takePendingOpen,
 } from "./lib/ipc";
 import type { AnnotationInfo } from "./lib/ipc";
 import {
@@ -376,6 +377,22 @@ export default function App() {
     return () => {
       disposed = true;
       unlisten?.();
+    };
+  }, [doOpen]);
+
+  // 通过文件关联启动（双击 .pdf 或「打开方式 → PDFe」）：后端在启动阶段把命令行
+  // 里的文件路径存入待打开槽位，这里在挂载后取走并打开。
+  useEffect(() => {
+    let disposed = false;
+    takePendingOpen()
+      .then((path) => {
+        if (!disposed && path) doOpen(path);
+      })
+      .catch(() => {
+        /* 非 Tauri 环境没有该命令，忽略 */
+      });
+    return () => {
+      disposed = true;
     };
   }, [doOpen]);
 

@@ -564,6 +564,12 @@ const en: Record<string, string> = {
   检查更新: "Check for updates",
   "打开商店页面失败，请手动访问 Microsoft Store。":
     "Failed to open the store page. Please visit the Microsoft Store manually.",
+  "默认打开方式": "Default app",
+  "PDFe 已注册为 PDF 文档的候选打开程序，可在资源管理器的「打开方式」中找到。Windows 不允许应用自行设为默认，请在系统设置中确认。":
+    "PDFe is registered as a candidate handler for PDF documents and appears under “Open with” in File Explorer. Windows does not allow an app to make itself the default, so please confirm it in system settings.",
+  "打开系统默认应用设置": "Open default apps settings",
+  "打开系统设置失败，请手动前往「设置 → 应用 → 默认应用」。":
+    "Failed to open system settings. Please go to Settings → Apps → Default apps manually.",
   // ---------- 隐私声明 ----------
   隐私声明: "Privacy Statement",
   "PDFe 完全在你的本机运行，不包含联网功能，不收集、不上传、不共享你的个人信息或文档内容。":
@@ -1335,6 +1341,12 @@ const ja: Record<string, string> = {
   检查更新: "更新を確認",
   "打开商店页面失败，请手动访问 Microsoft Store。":
     "ストアページを開けませんでした。Microsoft Store に手動でアクセスしてください。",
+  "默认打开方式": "既定のアプリ",
+  "PDFe 已注册为 PDF 文档的候选打开程序，可在资源管理器的「打开方式」中找到。Windows 不允许应用自行设为默认，请在系统设置中确认。":
+    "PDFe は PDF 文書の候補アプリとして登録され、エクスプローラーの「プログラムから開く」に表示されます。Windows ではアプリが自動的に既定に設定することはできないため、システム設定で確認してください。",
+  "打开系统默认应用设置": "既定のアプリの設定を開く",
+  "打开系统设置失败，请手动前往「设置 → 应用 → 默认应用」。":
+    "システム設定を開けませんでした。「設定 → アプリ → 既定のアプリ」に手動で移動してください。",
   // ---------- プライバシー声明 ----------
   隐私声明: "プライバシー声明",
   "PDFe 完全在你的本机运行，不包含联网功能，不收集、不上传、不共享你的个人信息或文档内容。":

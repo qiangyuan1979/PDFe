@@ -940,3 +940,13 @@ export function renderPage(docId: number, pageIndex: number, scale: number): Pro
 export function renderThumbnail(docId: number, pageIndex: number): Promise<ImageBitmap> {
   return renderBinary("render_thumbnail", { docId, pageIndex });
 }
+
+/** 取走启动时因文件关联（双击 .pdf / 「打开方式 → PDFe」）暂存的文件路径；没有则返回 null。 */
+export function takePendingOpen(): Promise<string | null> {
+  return invoke<string | null>("take_pending_open");
+}
+
+/** 打开 Windows「默认应用」设置页，供用户把 PDFe 设为 .pdf 默认程序。 */
+export function openDefaultAppsSettings(): Promise<void> {
+  return invoke<void>("open_default_apps_settings");
+}

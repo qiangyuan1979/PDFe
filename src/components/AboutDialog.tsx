@@ -3,6 +3,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useApp } from "../state/store";
 import { useT } from "../i18n";
 import { useAppVersion } from "../hooks/useAppVersion";
+import { openDefaultAppsSettings } from "../lib/ipc";
 import { FEATURE_KEYS } from "./HelpPanel";
 
 // Microsoft Store 产品页；应用更新走 Store 自带机制，不自建更新器
@@ -14,12 +15,18 @@ export default function AboutDialog() {
   const t = useT();
   const version = useAppVersion();
   const [failed, setFailed] = useState(false);
+  const [defaultFailed, setDefaultFailed] = useState(false);
 
   if (!aboutOpen) return null;
 
   const onCheckUpdate = () => {
     setFailed(false);
     openUrl(STORE_URL).catch(() => setFailed(true));
+  };
+
+  const onOpenDefaultApps = () => {
+    setDefaultFailed(false);
+    openDefaultAppsSettings().catch(() => setDefaultFailed(true));
   };
 
   return (
@@ -104,6 +111,21 @@ export default function AboutDialog() {
           {failed && (
             <span style={{ fontSize: 12, color: "var(--fg-dim)" }}>
               {t("打开商店页面失败，请手动访问 Microsoft Store。")}
+            </span>
+          )}
+        </div>
+
+        <h3 style={{ marginTop: 20, marginBottom: 8 }}>{t("默认打开方式")}</h3>
+        <p style={{ margin: "0 0 10px", fontSize: 13, lineHeight: 1.6, color: "var(--fg)" }}>
+          {t(
+            "PDFe 已注册为 PDF 文档的候选打开程序，可在资源管理器的「打开方式」中找到。Windows 不允许应用自行设为默认，请在系统设置中确认。",
+          )}
+        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={onOpenDefaultApps}>{t("打开系统默认应用设置")}</button>
+          {defaultFailed && (
+            <span style={{ fontSize: 12, color: "var(--fg-dim)" }}>
+              {t("打开系统设置失败，请手动前往「设置 → 应用 → 默认应用」。")}
             </span>
           )}
         </div>

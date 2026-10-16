@@ -64,6 +64,22 @@
           Square71x71Logo="Assets\Square71x71Logo.png"
           Square310x310Logo="Assets\Square310x310Logo.png" />
       </uap:VisualElements>
+      <Extensions>
+        <!--
+          文件关联：把 .pdf 注册到本应用，使其出现在资源管理器「打开方式」候选中。
+          Windows 不允许应用自行静默设为默认（系统仅允许用户在
+          「设置 → 应用 → 默认应用」里确认），因此这里只负责登记为候选。
+        -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="pdfe.pdf">
+            <uap:DisplayName>PDF 文档</uap:DisplayName>
+            <uap:Logo>Assets\Square44x44Logo.png</uap:Logo>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.pdf</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+      </Extensions>
     </Application>
   </Applications>
 

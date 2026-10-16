@@ -1,4 +1,5 @@
 pub mod batch;
+pub mod cli;
 pub mod compress;
 pub mod convert;
 pub mod document;
@@ -18,6 +19,7 @@ pub mod watermark;
 pub mod watermark_remove;
 
 pub use document::pdfium;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -25,9 +27,19 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(document::AppState::default())
-        .setup(|_app| {
+        .manage(cli::PendingOpen::default())
+        .setup(|app| {
             #[cfg(feature = "ocr")]
             configure_ocr_runtime();
+
+            // 文件关联启动（双击 .pdf / 「打开方式 → PDFe」）：Windows 把文件路径
+            // 作为命令行参数传给 exe，这里挑出来暂存，前端挂载后取走打开。
+            let args: Vec<String> = std::env::args().collect();
+            if let Some(path) = cli::pick_file_arg(&args, |p| std::path::Path::new(p).is_file()) {
+                if let Some(pending) = app.try_state::<cli::PendingOpen>() {
+                    *pending.0.lock().unwrap_or_else(|e| e.into_inner()) = Some(path);
+                }
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -97,7 +109,9 @@ pub fn run() {
             ocr::ocr_page,
             ocr::ocr_apply_text_overlay,
             forms::list_form_fields,
-            forms::set_form_field_value
+            forms::set_form_field_value,
+            cli::take_pending_open,
+            cli::open_default_apps_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
